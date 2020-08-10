@@ -1,5 +1,5 @@
 import hashlib
-from test_data import *
+from test_data import TESTVECTOR
 
 
 def key_calculation(key, GST, alpha, KS):
@@ -38,7 +38,7 @@ for key_info in reversed(key_chain[:-1]):
         last_key = current_key
         print('\t\033[32m Same Key! \033[m')
         if(key_info['ID'] == 0):
-            print('\n\t\033[1m\033[30m\033[42m Chain verifiyed! \033[m')
+            print('\n\t\033[1m\033[30m\033[42m Chain verified! \033[m')
     else:
         print('\t\033[31m Keys are diferent! \033[m')
         break
