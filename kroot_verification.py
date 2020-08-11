@@ -1,16 +1,26 @@
+from test_data import KROOTVECTOR
+import data_structures as data_s
+from data_structures import Field, DataField
 import ecdsa
 import hashlib
-from test_data import KROOTVECTOR
-import message_sizes
+import bitstring as bs
 
-signature_message = bytearray.fromhex(format(KROOTVECTOR['M'],'x'))
 
-vk = ecdsa.VerifyingKey.from_pem(KROOTVECTOR['PubK'], hashfunc=hashlib.sha256)
+message = bs.BitArray()
 
-print(message_sizes.NPKT.meaning(5))
+for field in data_s.kroot_sm:
+    print(field.name)
+    if field == data_s.KROOT:
+        message.append(bs.BitArray(uint=KROOTVECTOR[field.name],
+                                    length=data_s.KS.meaning(KROOTVECTOR['KS'])))
+    else:
+        message.append(bs.BitArray(uint=KROOTVECTOR[field.name], length=field.size))
+
+with open('PubK.pem') as f:
+    vk = ecdsa.VerifyingKey.from_pem(f.read(), hashfunc=hashlib.sha256)
 
 try:
-    vk.verify(bytearray.fromhex(format(KROOTVECTOR['DS'],'x')),signature_message)
+    vk.verify(bytearray.fromhex(format(KROOTVECTOR['DS'],'x')),message.bytes)
     print('\n\t\033[1m\033[30m\033[42m Signature verified! \033[m')
 except ecdsa.BadSignatureError as e:
     print('\t\033[31m Bad Signature \033[m')
