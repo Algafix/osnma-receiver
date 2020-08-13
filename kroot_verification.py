@@ -9,7 +9,6 @@ import bitstring as bs
 message = bs.BitArray()
 
 for field in data_s.kroot_sm:
-    print(field.name)
     if field == data_s.KROOT:
         message.append(bs.BitArray(uint=KROOTVECTOR[field.name],
                                     length=data_s.KS.meaning(KROOTVECTOR['KS'])))

@@ -214,6 +214,42 @@ P2 = Field(
     'Padding bits for multiple of DMS block'
 )
 
+P3 = Field(
+    1,
+    'P3',
+    'Padding bits for multiple of byte in MAC'
+)
+
+PRN = Field(
+    8,
+    'PRN',
+    'Number of the satellite transmiting'
+)
+
+CTR = Field(
+    8,
+    'CTR',
+    'Counter of MACs per block'
+)
+
+GST_WN = Field(
+    12,
+    'GST_WN',
+    'GST Week number'
+)
+
+GST_TOW = Field(
+    20,
+    'GST_TOW',
+    'GST Time of Week'
+)
+
+navdata = Field(
+    None,
+    'navdata',
+    'Navigation Data within the MAC'
+)
+
 section_strutures = {
     'NMA_H' : [NMA_S, CID,CPKS],
     'DSM_H' : [DSM_ID, BID],
@@ -224,5 +260,7 @@ section_strutures = {
 
 kroot_sm = [NMA_H, CIDKR, NMACK, HF, MF, KS, MS, MACLT,
         rsvd, MO, KROOT_WN, KROOT_TOWH, alpha, KROOT]
+
+mac0_am = [PRN, GST_WN, GST_TOW, CTR, NMA_S, navdata, P3]
 
     

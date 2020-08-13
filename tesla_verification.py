@@ -43,4 +43,4 @@ for key_info in reversed(key_chain[:-1]):
         print('\t\033[31m Keys are diferent! \033[m')
         break
 
-print('==========================================')
+print('\n==========================================')
