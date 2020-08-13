@@ -192,8 +192,8 @@ NPKT = Field(
     4,
     'NPKT',
     'New Public Key type',
-    lambda x : {0:'ECDSA P-224', 1:'ECDSA P-256', 2:'ECDSA P-384',
-            3:'ECDSA P-521', 4:'Emergency Service Message'}.get(x) if x<5 else 'rsvd'
+    lambda x : {0:('ECDSA P-224',232), 1:('ECDSA P-256',264), 2:('ECDSA P-384',392),
+            3:('ECDSA P-521',536), 4:('Emergency Service Message',None)}.get(x) if x<5 else ('rsvd',None)
 )
 
 NPKTID = Field(

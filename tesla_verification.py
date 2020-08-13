@@ -1,5 +1,5 @@
 import hashlib
-from test_data import TESTVECTOR
+from auxiliar_data.test_data import TESTVECTOR
 
 
 def key_calculation(key, GST, alpha, KS):

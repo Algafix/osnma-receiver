@@ -1,8 +1,8 @@
 import hmac
 import hashlib
 import bitstring as bs
-import data_structures as data_s
-from test_data import MAC0VECTOR, NAVDATA
+import auxiliar_data.data_structures as data_s
+from auxiliar_data.test_data import MAC0VECTOR, NAVDATA
 
 # Collect navdata to be verified
 
@@ -46,7 +46,7 @@ print('\n==========================================')
 if tag0 == bs.BitArray(MAC0VECTOR['MAC0']['TAG0']):
     print('\n\t\033[1m\033[30m\033[42m MAC0 verified! \033[m')
 else:
-    print('\t\033[31m Bad MAC0 \033[m')
+    print('\n\t\033[31m Bad MAC0 \033[m')
 
 print('\n==========================================')
 
@@ -60,6 +60,6 @@ mac_seq = bs.BitArray(hex=seq.hexdigest())[:MAC0VECTOR['MS']]
 if mac_seq == bs.BitArray(MAC0VECTOR['MAC0']['SEQ']):
     print('\n\t\033[1m\033[30m\033[42m SEQ verified! \033[m')
 else:
-    print('\t\033[31m Bad SEQ \033[m')
+    print('\n\t\033[31m Bad SEQ \033[m')
 
 print('\n==========================================')

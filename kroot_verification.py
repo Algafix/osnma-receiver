@@ -1,6 +1,5 @@
-from test_data import KROOTVECTOR
-import data_structures as data_s
-from data_structures import Field, DataField
+from auxiliar_data.test_data import KROOTVECTOR
+import auxiliar_data.data_structures as data_s
 import ecdsa
 import hashlib
 import bitstring as bs
@@ -15,7 +14,7 @@ for field in data_s.kroot_sm:
     else:
         message.append(bs.BitArray(uint=KROOTVECTOR[field.name], length=field.size))
 
-with open('PubK.pem') as f:
+with open('auxiliar_data/PubK.pem') as f:
     vk = ecdsa.VerifyingKey.from_pem(f.read(), hashfunc=hashlib.sha256)
 
 try:
