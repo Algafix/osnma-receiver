@@ -10,6 +10,7 @@ pkr_message = bs.BitArray(PKRVECTOR)
 merkle_root = bs.BitArray(MERKLEROOT)
 
 dms_pkr = copy.deepcopy(data_s.section_strutures['DMS_PKR'])
+pkr_pos = data_s.DMS_PKR_POS
 
 # Disfragment the raw message
 
@@ -24,18 +25,18 @@ for field in dms_pkr:
 
         # Update size of the NPK field
         if field.name == 'NPKT':
-            dms_pkr[5].size = field.meaning(field.data.uint)[1]
+            dms_pkr[pkr_pos.NPK].size = field.meaning(field.data.uint)[1]
 
 
-dms_pkr[2].data = [dms_pkr[2].data[:256],
-                    dms_pkr[2].data[256:512],
-                    dms_pkr[2].data[512:768],
-                    dms_pkr[2].data[768:]]
+dms_pkr[pkr_pos.ITN].data = [dms_pkr[pkr_pos.ITN].data[:256],
+                    dms_pkr[pkr_pos.ITN].data[256:512],
+                    dms_pkr[pkr_pos.ITN].data[512:768],
+                    dms_pkr[pkr_pos.ITN].data[768:]]
 
-m0 = dms_pkr[3].data+dms_pkr[4].data+dms_pkr[5].data
+m0 = dms_pkr[pkr_pos.NPKT].data + dms_pkr[pkr_pos.NPKTID].data + dms_pkr[pkr_pos.NPK].data
 node = hashlib.sha256(m0.bytes).digest()
 
-for key in dms_pkr[2].data:
+for key in dms_pkr[pkr_pos.ITN].data:
     node = bs.BitArray(hashlib.sha256((node + key).bytes).digest())
 
 

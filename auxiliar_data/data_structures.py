@@ -1,3 +1,5 @@
+from enum import IntEnum
+
 
 class DataField:
     def __init__(self, field, data=None):
@@ -13,11 +15,12 @@ class DataField:
             self.data = data
 
 class Field:
-    def __init__(self, size, name, description, meaning=None):
+    def __init__(self, size, name, description, meaning=None, data=None):
         self.size = size
         self.name = name
         self.description = description
         self.meaning = meaning
+        self.data = data
 
 
 NMA_S = Field(
@@ -251,15 +254,45 @@ navdata = Field(
 )
 
 section_strutures = {
-    'NMA_H' : [NMA_S, CID,CPKS],
-    'DSM_H' : [DSM_ID, BID],
-    'DMS_KROOT' : [NB, PKID, CIDKR, NMACK, HF, MF, KS,
+    'NMA_H': [NMA_S, CID,CPKS],
+    'DSM_H': [DSM_ID, BID],
+    'DMS_KROOT': [NB, PKID, CIDKR, NMACK, HF, MF, KS,
             MS, MACLT, rsvd, MO, KROOT_WN, KROOT_TOWH, alpha, KROOT, DS, P1],
-    'DMS_PKR' : [NB, MID, ITN, NPKT, NPKTID, NPK, P2]
+    'DMS_PKR': [NB, MID, ITN, NPKT, NPKTID, NPK, P2]
 }
 
-kroot_sm = [NMA_H, CIDKR, NMACK, HF, MF, KS, MS, MACLT,
-        rsvd, MO, KROOT_WN, KROOT_TOWH, alpha, KROOT]
+class DMS_PKR_POS(IntEnum):
+    NB = 0
+    MID = 1
+    ITN = 2
+    NPKT = 3
+    NPKTID = 4
+    NPK = 5
+    P2 = 6
+
+class DMS_KROOT_POS(IntEnum):
+    NB = 0
+    PKID = 1
+    CIDKR = 2
+    NMACK = 3
+    HF = 4
+    MF = 5
+    KS = 6
+    MS = 7
+    MACLT = 8
+    rsvd = 9
+    MO = 10
+    KROOT_WN = 11
+    KROOT_TOWH = 12
+    alpha = 13
+    KROOT = 14
+    DS = 15
+    P1 = 16
+
+
+kroot_sm = [NMA_H, DMS_KROOT_POS.CIDKR, DMS_KROOT_POS.NMACK, DMS_KROOT_POS.HF, DMS_KROOT_POS.MF,
+            DMS_KROOT_POS.KS, DMS_KROOT_POS.MS, DMS_KROOT_POS.MACLT, DMS_KROOT_POS.rsvd, DMS_KROOT_POS.MO,
+            DMS_KROOT_POS.KROOT_WN, DMS_KROOT_POS.KROOT_TOWH, DMS_KROOT_POS.alpha, DMS_KROOT_POS.KROOT]
 
 mac0_am = [PRN, GST_WN, GST_TOW, CTR, NMA_S, navdata, P3]
 
