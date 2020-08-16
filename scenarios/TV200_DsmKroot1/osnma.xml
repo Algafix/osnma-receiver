@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<OsnmaSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<!-- TV200 !-->
+  <SystemSettings>
+	<NS>36</NS>
+	<Latency>7</Latency>
+  </SystemSettings>
+   
+  <Chains>
+    <Chain ID="0" NMACK="2" HF="SHA2_256" MF="HmacSha256" KS="112" MS="16" MACLT="8" MO="0" StartWN="1018" StartDOW="5" EndWN="1018" EndDOW="6" >
+		<AlphaHex>FBCA 3456 9875</AlphaHex>
+		<SeedKeyBin>1010111010101110 1010111010101110 1010111010101110 1010111010101110 1010111010101110 1010111010101110 1010111010101110</SeedKeyBin>
+	</Chain>
+  </Chains>
+  
+  <DSM>
+	<DSM-KROOT UID="CIDKR0_DAY0_OP_NOM">
+		<NmaHeader NmaStatus="Operational" ChainPKStatus="Nominal" CID="0" ReservedBin="0" />
+		<DsmHeader DSMID="0" />
+		<DsmParams PKID="0" />
+		<ChainParams CIDKR="0" />
+		<KRootParams KrWn="1018" KrTowh="120" />
+		<DsmOffsetting>1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4</DsmOffsetting>
+    </DSM-KROOT>
+  </DSM>
+  
+  <MACK>
+    <MackConfig UID="0">
+		<adkd>0,0,0,0, 0,0,0,0</adkd>
+		<system>E,E,E,E, E,E,E,E</system>
+		<crossauth>0,1,2,3, 4,5,6,7</crossauth>
+		<keyToUse>1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1</keyToUse>
+		<offset>0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0</offset>
+    </MackConfig>
+  </MACK>
+  
+  <Schedule>
+    <Entry UID="CIDKR0_DAY0_OP_NOM" MackConfig="0" StartWn="1018" StartTow="432001" />
+  </Schedule>
+</OsnmaSettings>
