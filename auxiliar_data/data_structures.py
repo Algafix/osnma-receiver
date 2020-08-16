@@ -1,18 +1,19 @@
 from enum import IntEnum
 
 
-class DataField:
-    def __init__(self, field, data=None):
-        if isinstance(field, Field):
-            self.size = field.size
-            self.name = field.name
-            self.description = field.description
-            self.meaning = field.meaning
-        else:
-            raise TypeError(str(field) + " is not a Field object")
+# class DataField:
+#     def __init__(self, field, data=None):
+#         if isinstance(field, Field):
+#             self.size = field.size
+#             self.name = field.name
+#             self.description = field.description
+#             self.meaning = field.meaning
+#             self.data
+#         else:
+#             raise TypeError(str(field) + " is not a Field object")
 
-        if data:
-            self.data = data
+#         if data:
+#             self.data = data
 
 class Field:
     def __init__(self, size, name, description, meaning=None, data=None):
