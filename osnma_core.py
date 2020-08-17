@@ -8,6 +8,8 @@ import auxiliar_data.osnma_structures as osnma_structures
 
 class OSNMACore:
 
+    __hash_table = {'SHA256': hashlib.sha256, 'SHA3_224': hashlib.sha3_224, 'SHA3_256': hashlib.sha256}
+
     def __init__(self):
         self.OSNMA_data = osnma_fields.OSNMA_fields
         self.OSNMA_sections = osnma_structures.section_structures
@@ -25,7 +27,7 @@ class OSNMACore:
 
             # Secondary actions related to certain fields
             if(current_field.name == 'KS'):
-                self.OSNMA_data['KROOT'].size = current_field.meaning(current_field.data.uint)
+                self.OSNMA_data['KROOT'].size = current_field.get_meaning()
         except:
             raise
     
@@ -45,25 +47,22 @@ class OSNMACore:
             self.load(key, data_dict[key])
 
 
-    def kroot_verification(self, pub_key, hash=None):
+    def kroot_verification(self, pub_key, hash_name=None):
         # Create the kroot signature message
         message = bs.BitArray()
         for field in self.OSNMA_crypto['kroot_sm']:
             message.append(self.OSNMA_data[field].data)
         
-        # Load the correspondand key and hash function
+        # Load the correspondand hash function
+        if hash_name == None:
+            hash_name = self.OSNMA_data['HF'].get_meaning()
+        
+        try:
+            hash = self.__hash_table[hash_name]
+        except KeyError:
+            raise TypeError("Hash not supported: " + hash_name)
 
-        if hash == None:
-            hashname = self.OSNMA_data['HF'].meaning(self.OSNMA_data['HF'].data.uint)
-            if hashname == 'SHA256':
-                hash = hashlib.sha256
-            elif hashname == 'SHA3_224':
-                hash = hashlib.sha3_224
-            elif hashname == 'SHA3_256':
-                hash = hashlib.sha3_256
-            else:
-                raise TypeError("Hash not supported")
-
+        # Load key and create sign object
         with open(pub_key) as f:
             try:
                 vk = ecdsa.VerifyingKey.from_pem(f.read(), hashfunc=hash)

@@ -7,6 +7,9 @@ class Field:
         self.description = description
         self.meaning = meaning
         self.data = data
+    
+    def get_meaning(self):
+        return None if self.meaning == None else self.meaning(self.data.uint)
 
 OSNMA_fields = {
 
