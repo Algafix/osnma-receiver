@@ -85,7 +85,7 @@ OSNMA_fields = {
         2,
         'HF',
         'Hash Function',
-        lambda x : {0:'SHA-256', 1:'SHA3-224', 2:'SHA3-256', 3:'rsvd'}.get(x)
+        lambda x : {0:'SHA256', 1:'SHA3_224', 2:'SHA3_256', 3:'rsvd'}.get(x)
     ),
 
     'MF' : Field(
