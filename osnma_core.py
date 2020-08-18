@@ -1,4 +1,5 @@
 import bitstring as bs
+import math
 import sys
 import ecdsa
 import hashlib
@@ -10,10 +11,70 @@ class OSNMACore:
 
     __hash_table = {'SHA256': hashlib.sha256, 'SHA3_224': hashlib.sha3_224, 'SHA3_256': hashlib.sha256}
 
-    def __init__(self):
+    def __init__(self, svid=1):
         self.OSNMA_data = osnma_fields.OSNMA_fields
         self.OSNMA_sections = osnma_structures.section_structures
         self.OSNMA_crypto = osnma_structures.cryptographic_structures
+        self.svid = svid
+        self.__NS = 36
+        self.__HF = None
+        self.__key_table = {}
+
+
+    def __macs_per_mackblock(self, nmack=None, ks=None, ms=None):
+        # Load parameters
+        if not nmack:
+            nmack = self.OSNMA_data['NMACK'].data.uint
+        if not ks:
+            ks = self.OSNMA_data['KS'].get_meaning()
+        if not ms:
+            ms = self.OSNMA_data['MS'].get_meaning()
+        
+        return math.floor(((480/nmack) - 16)/(ms + 16))
+
+
+    def get_key_index(self, gst, position, svid=None, ns=None, nmack=None, gst_0=None):
+        if not svid:
+            svid = self.svid
+        if not ns:
+            ns = self.__NS
+        if not nmack:
+            nmack = self.OSNMA_data['NMACK'].data.uint
+        if not gst_0:
+            gst_0 = self.__get_gst0()
+
+        past_keys = ((gst.uint - gst_0.uint)//30) * ns * nmack
+        key_index = past_keys + ns * (position-1) + svid
+
+        return key_index
+    
+
+    def __get_gst0(self):
+
+        gst_0 = bs.BitArray(self.OSNMA_data['KROOT_WN'].data)
+        tow_s = self.OSNMA_data['KROOT_TOWH'].data.uint * 3600
+        gst_0.append(bs.BitArray(uint=tow_s, length=20))
+
+        return gst_0
+
+
+    def __gst_subfragment(self, m, ns=None, gst_0=None, nmack=None):
+
+        if m == 0:
+            gst_subfragment = self.__key_table[0].wn + self.__key_table[0].tow
+        else:
+            # Load parameters
+            if not ns:
+                ns = self.__NS
+            if not nmack:
+                nmack = self.OSNMA_data['NMACK'].data.uint
+            if not gst_0:
+                gst_0 = self.__get_gst0().uint
+            
+            gst_subfragment = gst_0 + 30 * math.floor(m//(ns * nmack))
+            gst_subfragment = bs.BitArray(uint=gst_subfragment, length=32)
+
+        return gst_subfragment
 
 
     def load(self, field_name, data):
@@ -28,6 +89,13 @@ class OSNMACore:
             # Secondary actions related to certain fields
             if(current_field.name == 'KS'):
                 self.OSNMA_data['KROOT'].size = current_field.get_meaning()
+            elif(current_field.name == 'HF'):
+                self.__HF = current_field.get_meaning()
+            elif(current_field.name == 'KROOT'):
+                entry_wn = self.OSNMA_data['KROOT_WN'].data
+                entry_tow = self.OSNMA_data['KROOT_TOWH'].data.uint*3600 - 30
+                entry_tow = bs.BitArray(uint=entry_tow, length=20)
+                self.__key_table[0] = osnma_structures.KeyEntry(0, entry_wn, entry_tow, data)
         except:
             raise
     
@@ -55,7 +123,7 @@ class OSNMACore:
         
         # Load the correspondand hash function
         if hash_name == None:
-            hash_name = self.OSNMA_data['HF'].get_meaning()
+            hash_name = self.__HF
         
         try:
             hash = self.__hash_table[hash_name]
@@ -78,6 +146,35 @@ class OSNMACore:
         finally:
             return verification_result
 
+
+    def tesla_key_verification(self, key, svid, gst_wn, gst_tow, position, alpha=None):
+
+        if not alpha:
+            alpha = self.OSNMA_data['alpha'].data
+
+        key_size = self.OSNMA_data['KS'].get_meaning()
+        gst = gst_wn + gst_tow
+        key_index = self.get_key_index(gst, position, svid)
+        new_keys_dict = {}
+
+        new_keys_dict[key_index] = osnma_structures.KeyEntry(key_index, gst_wn, gst_tow, key)
+
+        for index in reversed(range(key_index)):
+            gst = self.__gst_subfragment(index)
+            hash_object = hashlib.new(self.__HF)
+            hash_object.update((key + gst + alpha).bytes)
+            prev_key = bs.BitArray(hash_object.digest())
+            key = prev_key[:key_size]
+            
+            if index not in self.__key_table.keys():
+                new_keys_dict[index] = osnma_structures.KeyEntry(index, gst[:12], gst[12:], key)
+
+        verified = (key == self.__key_table[0].key)
+
+        if verified:
+            self.__key_table.update(new_keys_dict)
+
+        return verified
 
 
 if __name__ == "__main__":

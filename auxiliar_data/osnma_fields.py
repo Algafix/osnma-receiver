@@ -81,7 +81,7 @@ OSNMA_fields = {
         2,
         'NMACK',
         'Nb. of MACK blocks',
-        lambda x : 0 if x == 0 else x
+        lambda x : {0:'rsvd', 1:480, 2:240, 3:160}.get(x)
     ),
 
     'HF' : Field(

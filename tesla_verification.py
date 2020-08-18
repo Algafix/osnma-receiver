@@ -1,46 +1,38 @@
 import hashlib
+import osnma_core
+import bitstring as bs
 from auxiliar_data.test_data import TESTVECTOR
 
 
-def key_calculation(key, GST, alpha, KS):
-    m = hashlib.sha256()
-    m.update(key + GST + alpha)
-    return m.digest()[:KS//8]
+# def key_calculation(key, GST, alpha, KS):
+#     m = hashlib.sha256()
+#     m.update(key + GST + alpha)
+#     return m.digest()[:KS//8]
 
 # Initialization of common values for the chain verification
+osnma = osnma_core.OSNMACore(svid=2)
 
-key_chain = TESTVECTOR['keychain']
-KS = TESTVECTOR['KS']
-TOW_S = TESTVECTOR['TOWS']
-alpha = bytearray.fromhex(TESTVECTOR['alpha'])
+key = bs.BitArray(hex='22B30FBEE8C6C4A43480AF28A67D4A65')
+key_wn = bs.BitArray(uint=947, length=osnma.OSNMA_data['GST_WN'].size)
+key_tow = bs.BitArray(uint=(432000), length=osnma.OSNMA_data['GST_TOW'].size)
+position = 1
 
-# The last appended key in the chain is checked agaist the previous ones
+ks = bs.BitArray('0b0100')
+hf = bs.BitArray('0b00')
+nmack = bs.BitArray('0b10')
+alpha = bs.BitArray(hex='F1CA3856A975')
 
-last_key = bytearray.fromhex(key_chain[-1]['KEY'])
+kroot = bs.BitArray(hex='EE6772D9AB8396866DC57EADA1D29637')
+kroot_wn = bs.BitArray(uint=947, length=osnma.OSNMA_data['KROOT_WN'].size)
+kroot_towh = bs.BitArray(uint=(432000//3600), length=osnma.OSNMA_data['KROOT_TOWH'].size)
 
-for key_info in reversed(key_chain[:-1]):
 
-    # Extraction of values to improve readability
-    WN = key_info['WN']
-    TOW = key_info['TOW']
-    current_key = bytearray.fromhex(key_info['KEY'])
+osnma.load_batch({'KS':ks, 'HF':hf, 'NMACK':nmack, 'alpha':alpha,
+                'KROOT_WN':kroot_wn, 'KROOT_TOWH':kroot_towh, 'KROOT':kroot})
 
-    # In the test data the GST 32 bits register is fragmented onto WN and TOW,
-    # so it's necessary to re-unite it by bit alignment.
-    GST = bytearray.fromhex(format(WN<<TOW_S|TOW,'x'))
-    
-    computed_key = key_calculation(last_key,GST,alpha,KS)
+verificada = osnma.tesla_key_verification(key, 2, key_wn, key_tow, position)
 
-    print('\n==========================================')
-    print('Current key: ' + current_key.hex())
-    print('Computed key: ' + computed_key.hex())
-    if (current_key == computed_key):
-        last_key = current_key
-        print('\t\033[32m Same Key! \033[m')
-        if(key_info['ID'] == 0):
-            print('\n\t\033[1m\033[30m\033[42m Chain verified! \033[m')
-    else:
-        print('\t\033[31m Keys are diferent! \033[m')
-        break
-
-print('\n==========================================')
+if verificada:
+    print('\n\t\033[1m\033[30m\033[42m Chain verified! \033[m\n')
+else:
+    print('\n\t\033[31m Keys are diferent! \033[m\n')

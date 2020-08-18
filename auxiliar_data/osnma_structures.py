@@ -1,4 +1,11 @@
 
+class KeyEntry:
+    
+    def __init__(self, index, wn, tow, key):
+        self.index = index
+        self.wn = wn
+        self.tow = tow
+        self.key = key
 
 section_structures = {
     'HKROOT': ['NMA_H', 'DSM_H', 'DMS_block'],
