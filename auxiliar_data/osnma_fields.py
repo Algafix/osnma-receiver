@@ -10,6 +10,18 @@ class Field:
     
     def get_meaning(self):
         return None if self.meaning == None else self.meaning(self.data.uint)
+    
+    def get_data(self):
+        return self.data
+    
+    def get_data_uint(self):
+        return self.data.uint
+    
+    def get_data_bytes(self):
+        return self.data.bytes
+    
+    def set_data(self, data):
+        self.data = data
 
 OSNMA_fields = {
 

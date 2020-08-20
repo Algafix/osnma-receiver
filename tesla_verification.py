@@ -4,11 +4,6 @@ import bitstring as bs
 from auxiliar_data.test_data import TESTVECTOR
 
 
-# def key_calculation(key, GST, alpha, KS):
-#     m = hashlib.sha256()
-#     m.update(key + GST + alpha)
-#     return m.digest()[:KS//8]
-
 # Initialization of common values for the chain verification
 osnma = osnma_core.OSNMACore(svid=2)
 
@@ -30,7 +25,7 @@ kroot_towh = bs.BitArray(uint=(432000//3600), length=osnma.OSNMA_data['KROOT_TOW
 osnma.load_batch({'KS':ks, 'HF':hf, 'NMACK':nmack, 'alpha':alpha,
                 'KROOT_WN':kroot_wn, 'KROOT_TOWH':kroot_towh, 'KROOT':kroot})
 
-verificada = osnma.tesla_key_verification(key, 2, key_wn, key_tow, position)
+verificada = osnma.tesla_key_verification(key, key_wn, key_tow, position)
 
 if verificada:
     print('\n\t\033[1m\033[30m\033[42m Chain verified! \033[m\n')

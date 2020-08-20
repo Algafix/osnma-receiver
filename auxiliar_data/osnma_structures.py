@@ -7,6 +7,11 @@ class KeyEntry:
         self.tow = tow
         self.key = key
 
+pubk_lengths = {'ECDSA P-224': {'signature':448, 'npk':232},
+                'ECDSA P-256': {'signature':512, 'npk':264},
+                'ECDSA P-384': {'signature':768, 'npk':392},
+                'ECDSA P-521': {'signature':1056, 'npk':536}}
+
 section_structures = {
     'HKROOT': ['NMA_H', 'DSM_H', 'DMS_block'],
     'NMA_H': ['NMA_S', 'CID', 'CPKS'],
