@@ -99,6 +99,9 @@ class OSNMACore:
     def get_repr(self, field_name):
         return self.OSNMA_data[field_name].get_repr()
 
+    def get_field(self, field_name):
+        return self.OSNMA_data[field_name]
+
     def load(self, field_name, data):
         try:
             # Try to create a BitArray object with the data

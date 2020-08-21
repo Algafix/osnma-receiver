@@ -5,7 +5,7 @@ import osnma_core as osnma
 
 
 default_path = 'scenarios/TV200_DsmKroot1/log/20200115_135442/NavMsg.csv'
-pubk_path = 'scenarios/TV200_DsmKroot1/input/pk/priv_pem_256v1.pem'
+pubk_path = 'scenarios/TV200_DsmKroot1/input/pk/pub_pem_256v1.pem'
 hkroot_start = 138
 hkroot_length = 8
 mack_start = 146
@@ -32,6 +32,20 @@ def load_scenario_navmsg(path, gnss=0, svid=1):
 
     return nav_msg
 
+def print_read(osnma, field):
+    if osnma.get_repr(field) == None:
+        print('Read ' + osnma.get_description(field) + ': ' + 
+        str(osnma.get_meaning(field)) + 
+        ' (0b' + osnma.get_data(field).bin + ')')
+    else:
+        print('Read ' + osnma.get_description(field) + ': ' + 
+        str(osnma.get_meaning(field)))
+
+def print_reading(osnma, field, bits):
+    print('Reading ' + str(osnma.get_description(field)) + 
+            ' (' + str(bits) + '/' + str(osnma.get_size(field)) + ')')
+
+
 
 if __name__ == "__main__":
     
@@ -55,11 +69,12 @@ if __name__ == "__main__":
 
         # Wait until transmission starts
         if (osnma_hkroot.uint + osnma_mack.uint) != 0:
-
+            
+            # General handeling
             if is_new_subframe:
                 
                 # Subframe local variables
-                subframe_page= 1
+                subframe_page = 1
                 is_new_subframe = False
 
                 # Set subframe WN and TOW correcting page offset until 30s
@@ -74,7 +89,7 @@ if __name__ == "__main__":
                     is_start_DSM = False
                     section_pos = 0
                     middle_field = False
-                    print('\nNew DSM Message')
+                    print('\nStart DSM Message')
 
                 print('\n')
 
@@ -83,10 +98,11 @@ if __name__ == "__main__":
                 if subframe_page >= 15:
                     is_new_subframe = True
 
-
+            # Message related handeling
             if subframe_page == 1:
                 # NMA Header
 
+                osnma.load('NMA_H', osnma_hkroot)
                 bit_count = 0
                 for field in osnma.OSNMA_sections['NMA_H']:
                     n_field = osnma_hkroot[bit_count:bit_count + osnma.get_size(field)]
@@ -94,37 +110,30 @@ if __name__ == "__main__":
 
                     if n_field != osnma.get_data(field):
                         osnma.load(field, n_field)
-                        print('Change in '+ osnma.get_description(field) + ': ' + 
-                            str(osnma.get_meaning(field)) + 
-                            ' (0b' + osnma.get_data(field).bin + ')')
+                        print_read(osnma, field)
 
             elif subframe_page == 2:
                 # DMS Header
 
                 bit_count = 0
-                prev_dsm_id = osnma.get_data('DSM_ID', 'uint')
+                prev_dsm_id = osnma.get_data('DSM_ID')
+
                 for field in osnma.OSNMA_sections['DSM_H']:
                     n_field = osnma_hkroot[bit_count:bit_count + osnma.get_size(field)]
                     bit_count += osnma.get_size(field)
-
                     if n_field != osnma.get_data(field):
                         osnma.load(field, n_field)
-                        print('Change in ' + osnma.get_description(field) + ': ' + 
-                            str(osnma.get_meaning(field)) + 
-                            ' (0b' + osnma.get_data(field).bin + ')')
+                        print_read(osnma, field)
 
-                        if field == 'DSM_ID':
-                            is_different_DSM = True
-                        else:
-                            if osnma.get_data('NB') != None:
-                                if osnma.get_meaning(field) >= osnma.get_meaning('NB'):
-                                    is_start_DSM = True
-                            if osnma.get_meaning(field) == 1 and prev_dsm_id == osnma.get_data('DSM_ID', 'uint'):
-                                is_different_DSM = False
-                                print('Same DMS message as before\n')
+                if osnma.get_data('NB') != None:
+                    if osnma.get_meaning('BID') >= osnma.get_meaning('NB'):
+                        is_start_DSM = True
 
-
-        
+                if prev_dsm_id != osnma.get_data('DSM_ID'):
+                    is_different_DSM = True
+                elif osnma.get_meaning('BID') == 1:
+                    is_different_DSM = False
+                    print('Same DMS message as before\n')
             else:
                 if osnma.get_data('DSM_ID', format='uint') < 12 and is_different_DSM:
                     # DMS-KROOT block
@@ -144,9 +153,7 @@ if __name__ == "__main__":
                                 if bit_count == hkroot_length:
                                     next_page = True
 
-                                print('Loaded ' + osnma.get_description(field) + ': ' + 
-                                str(osnma.get_meaning(field)) + 
-                                ' (0b' + osnma.get_data(field).bin + ')')
+                                print_read(osnma, field)
 
                             else:
                                 # Start of new field that occupies more than this page
@@ -155,8 +162,7 @@ if __name__ == "__main__":
                                 current_size = hkroot_length - bit_count
                                 next_page = True
 
-                                print('Start loading ' + str(osnma.get_description(field)) + 
-                                ' (' + str(current_size) + '/' + str(osnma.get_size(field)) + ')')
+                                print_reading(osnma, field, current_size)
 
                         else:
                             if (osnma.get_size(field) - current_size) > hkroot_length:
@@ -165,8 +171,8 @@ if __name__ == "__main__":
                                 current_size += hkroot_length
                                 next_page = True
 
-                                print('Still loading ' + osnma.get_description(field) + 
-                                ' (' + str(current_size) + '/' + str(osnma.get_size(field)) + ')')
+                                print_reading(osnma, field, current_size)
+
                             else:
                                 # End assembling the field
                                 middle_field = False
@@ -179,17 +185,19 @@ if __name__ == "__main__":
                                 if bit_count == hkroot_length:
                                     next_page = True               
 
-                                if osnma.get_repr(field) == None:
-                                    print('Loaded ' + osnma.get_description(field) + ': ' + 
-                                    str(osnma.get_meaning(field)) + 
-                                    ' (0b' + osnma.get_data(field).bin + ')')
-                                else:
-                                    print('Loaded ' + osnma.get_description(field) + ': ' + 
-                                    str(osnma.get_meaning(field)))
+                                print_read(osnma, field)
 
                         if next_page:
+                            # All bites from current page read
                             break
         
+        
+            if is_new_subframe and is_start_DSM:
+                if osnma.kroot_verification(pubk_path):
+                    print('\n\t\033[1m\033[30m\033[42m Signature verified!\033[m\n')
+                else:
+                    print('\n\t\033[31m Bad Signature \033[m\n')
+
         if index >= 300:
             break
 
