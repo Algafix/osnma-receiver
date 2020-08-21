@@ -78,12 +78,15 @@ class OSNMACore:
         return gst_subfragment
 
     def get_data(self, field_name, format=None):
-        if format == None:
-            return self.OSNMA_data[field_name].get_data()
+        field = self.OSNMA_data[field_name]
+        if field.get_data() == None:
+            return None
+        elif format == None:
+            return field.get_data()
         elif format == 'uint':
-            return self.OSNMA_data[field_name].get_data_uint()
+            return field.get_data_uint()
         elif format == 'bytes':
-            return self.OSNMA_data[field_name].get_data_bytes()
+            return field.get_data_bytes()
         else:
             raise TypeError('Format not accepted (None, uint, bytes)')
     
@@ -92,6 +95,9 @@ class OSNMACore:
 
     def get_description(self, field_name):
         return self.OSNMA_data[field_name].get_description()
+
+    def get_repr(self, field_name):
+        return self.OSNMA_data[field_name].get_repr()
 
     def load(self, field_name, data):
         try:
@@ -103,15 +109,20 @@ class OSNMACore:
             current_field.set_data(data)
 
             # Secondary actions related to certain fields
-            if(current_field.name == 'KS'):
+            if current_field.name == 'KS':
                 self.OSNMA_data['KROOT'].size = current_field.get_meaning()
-            elif(current_field.name == 'HF'):
+            elif current_field.name == 'HF':
                 self.__HF = current_field.get_meaning()
-            elif(current_field.name == 'KROOT'):
+            elif current_field.name == 'KROOT':
                 entry_wn = self.OSNMA_data['KROOT_WN'].get_data()
                 entry_tow = self.OSNMA_data['KROOT_TOWH'].get_data_uint()*3600 - 30
                 entry_tow = bs.BitArray(uint=entry_tow, length=20)
                 self.__key_table[0] = osnma_structures.KeyEntry(0, entry_wn, entry_tow, data)
+            elif current_field.name == 'NPKT':
+                ds_alg = current_field.get_meaning()[0]
+                ds_alg_info = osnma_structures.pubk_lengths[ds_alg]
+                self.OSNMA_data['DS'].size = ds_alg_info['signature']
+                self.OSNMA_data['NPK'].size = ds_alg_info['npk']
         except:
             raise
     

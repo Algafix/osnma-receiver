@@ -1,15 +1,19 @@
 
 
 class Field:
-    def __init__(self, size, name, description, meaning=None, data=None):
+    def __init__(self, size, name, description, meaning=None, data=None, repr=None):
         self.size = size
         self.name = name
         self.description = description
         self.meaning = meaning
         self.data = data
+        self.repr = repr
     
     def get_meaning(self):
-        return self.data.uint if self.meaning == None else self.meaning(self.data.uint)
+        if self.repr == 'hex':
+            return self.data.hex if self.meaning == None else self.meaning(self.data.uint)
+        else:
+            return self.data.uint if self.meaning == None else self.meaning(self.data.uint)
     
     def get_data(self):
         return self.data
@@ -25,6 +29,9 @@ class Field:
     
     def get_description(self):
         return self.description
+    
+    def get_repr(self):
+        return self.repr
 
 OSNMA_fields = {
 
@@ -71,7 +78,8 @@ OSNMA_fields = {
     'BID' : Field(
         4,
         'BID',
-        'DSM Block ID'
+        'DSM Block ID',
+        lambda x : x+1
     ),
 
     'NB' : Field(
@@ -164,19 +172,22 @@ OSNMA_fields = {
     'alpha' : Field(
         48,
         'alpha',
-        'alpha'
+        'alpha',
+        repr='hex'
     ),
 
     'KROOT' : Field(
         None,
         'KROOT',
-        'Key, size by KS'
+        'Key Root',
+        repr='hex'
     ),
 
     'DS' : Field(
         None,
         'DS',
-        'Digital Signature'
+        'Digital Signature',
+        repr='hex'
     ),
 
     'P1' : Field(
@@ -194,7 +205,8 @@ OSNMA_fields = {
     'ITN' : Field(
         1024,
         'ITN',
-        'Intermediate Tree Nodes'
+        'Intermediate Tree Nodes',
+        repr='hex'
     ),
 
     'NPKT' : Field(
@@ -205,16 +217,17 @@ OSNMA_fields = {
                 3:('ECDSA P-521',536), 4:('Emergency Service Message',None)}.get(x) if x<5 else ('rsvd',None)
     ),
 
-    'NPKTID' : Field(
+    'NPKID' : Field(
         4,
-        'NPKTID',
+        'NPKID',
         'New Public Key ID'
     ),
 
     'NPK' : Field(
         None,
         'NPK',
-        'New Public Key'
+        'New Public Key',
+        repr='hex'
     ),
 
     'P2' : Field(
@@ -256,6 +269,7 @@ OSNMA_fields = {
     'navdata' : Field(
         None,
         'navdata',
-        'Navigation Data within the MAC'
+        'Navigation Data within the MAC',
+        repr='hex'
     )
 }
