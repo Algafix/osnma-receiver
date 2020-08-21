@@ -9,7 +9,7 @@ class Field:
         self.data = data
     
     def get_meaning(self):
-        return None if self.meaning == None else self.meaning(self.data.uint)
+        return self.data.uint if self.meaning == None else self.meaning(self.data.uint)
     
     def get_data(self):
         return self.data
@@ -22,6 +22,9 @@ class Field:
     
     def set_data(self, data):
         self.data = data
+    
+    def get_description(self):
+        return self.description
 
 OSNMA_fields = {
 
@@ -61,7 +64,8 @@ OSNMA_fields = {
     'DSM_ID' : Field(
         4,
         'DMS_ID',
-        'DSM ID'
+        'DSM ID',
+        lambda x : 'DMS-KROOT ID' if x < 12 else 'DMS-PKR ID'
     ),
 
     'BID' : Field(

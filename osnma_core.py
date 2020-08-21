@@ -77,6 +77,21 @@ class OSNMACore:
 
         return gst_subfragment
 
+    def get_data(self, field_name, format=None):
+        if format == None:
+            return self.OSNMA_data[field_name].get_data()
+        elif format == 'uint':
+            return self.OSNMA_data[field_name].get_data_uint()
+        elif format == 'bytes':
+            return self.OSNMA_data[field_name].get_data_bytes()
+        else:
+            raise TypeError('Format not accepted (None, uint, bytes)')
+    
+    def get_meaning(self, field_name):
+        return self.OSNMA_data[field_name].get_meaning()
+
+    def get_description(self, field_name):
+        return self.OSNMA_data[field_name].get_description()
 
     def load(self, field_name, data):
         try:
