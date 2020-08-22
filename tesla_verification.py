@@ -10,7 +10,7 @@ osnma = osnma_core.OSNMACore(svid=2)
 key = bs.BitArray(hex='22B30FBEE8C6C4A43480AF28A67D4A65')
 key_wn = bs.BitArray(uint=947, length=osnma.OSNMA_data['GST_WN'].size)
 key_tow = bs.BitArray(uint=(432000), length=osnma.OSNMA_data['GST_TOW'].size)
-position = 1
+position = 0
 
 ks = bs.BitArray('0b0100')
 hf = bs.BitArray('0b00')

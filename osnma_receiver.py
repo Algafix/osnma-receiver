@@ -9,6 +9,7 @@ class OSNMA_receiver:
     hkroot_length = 8
     mack_start = 146
     mack_length = 32
+    mack_subframe_len = 480
 
     def __init__(self, gnss=0, svid=1, msg_path=None, pubk_path=None):
         self.msg_path = msg_path
@@ -16,7 +17,7 @@ class OSNMA_receiver:
         self.svid = svid
         self.pubk_path = pubk_path
         self.nav_msg_list = None
-
+        self.verified_kroot = False
 
         if self.msg_path:
             self.nav_msg_list = self.__load_scenario_navmsg()
@@ -67,10 +68,42 @@ class OSNMA_receiver:
                 ' (' + str(bits) + '/' + str(self.osnma.get_size(field)) + ')')
     
     def proceed_kroot_verification(self):
-        if self.osnma.kroot_verification(self.pubk_path):
+
+        self.verified_kroot = self.osnma.kroot_verification(self.pubk_path)
+
+        if self.verified_kroot:
             print('\n\t\033[1m\033[30m\033[42m Signature verified!\033[m\n')
         else:
             print('\n\t\033[31m Bad Signature \033[m\n')
+
+    def proceed_tesla_verification(self):
+
+        mack_blocks_len = self.osnma.get_meaning('NMACK')
+        num_mack_blocks = self.osnma.get_data('NMACK', format='uint')
+
+        if mack_blocks_len == 'rsvd':
+            print('Not using mack')
+        else:
+            key_size = self.osnma.get_meaning('KS')
+
+            bit_count = 0
+            for block_index in range(num_mack_blocks):
+                block = self.mack_current_subframe[bit_count:bit_count+mack_blocks_len]
+                bit_count += mack_blocks_len
+                macs = block[:-key_size]
+                tesla_key = block[-key_size:]
+
+                verificada = self.osnma.tesla_key_verification(tesla_key, self.subframe_WN, 
+                                                                self.subframe_TOW, block_index)
+                
+                if verificada:
+                    print('VERIFICADA')
+                else:
+                    print('TESLA KEY ERROR')
+                
+                print('WN: ' + str(self.subframe_WN.uint) + '\nTOW: ' + str(self.subframe_TOW.uint))
+                print('Key: ' + tesla_key.hex)
+
 
     def process_subframe_page(self, msg):
         """This method is called for every word read and process common variables to
@@ -83,15 +116,19 @@ class OSNMA_receiver:
         """
 
         if self.is_new_subframe:
-            # Subframe local variables
+
+            # Subframe control variables
             self.subframe_page = 1
             self.is_new_subframe = False
 
-            # Set subframe WN and TOW correcting page offset until 30s
+            # Set subframe WN and TOW correcting page offset up to 30s
             self.subframe_WN = bs.BitArray(uint=msg['WN'], length=self.osnma.get_size('GST_WN'))
             self.subframe_TOW = bs.BitArray(uint=(msg['TOW'] - msg['TOW']%30), length=self.osnma.get_size('GST_TOW'))
             
-            if(self.is_start_DSM or self.is_different_DSM):
+            # MACK variables
+            self.mack_current_subframe = bs.BitArray()
+
+            if (self.is_start_DSM or self.is_different_DSM):
                 print('\nNew Subframe:')
                 print('\tWN: ' + str(self.subframe_WN.uint))
                 print('\tTOW: ' + str(self.subframe_TOW.uint))
@@ -101,6 +138,8 @@ class OSNMA_receiver:
                 self.dsm_section_pos = 0
                 self.dsm_inside_field = False
                 print('\nStart DSM Message')
+
+
         else:
             self.subframe_page += 1
             if self.subframe_page >= 15:
@@ -156,7 +195,6 @@ class OSNMA_receiver:
         if self.is_different_DSM:
             for field in print_queue:
                 self.print_read(field)
-
 
     def process_dsm_kroot(self, osnma_hkroot):
         """Extract the DSM KRoot info. Each time called continues in the
@@ -242,19 +280,30 @@ class OSNMA_receiver:
                 # Subframe page handeling
                 self.process_subframe_page(msg)
 
-                # Message related handeling
-                if self.subframe_page == 1: # NMA Header
+                # HKROOT related handeling
+                if self.subframe_page == 1: 
+                    # NMA Header
                     self.process_nma_h(osnma_hkroot)
-                elif self.subframe_page == 2: # DMS Header
+                elif self.subframe_page == 2:
+                    # DMS Header
                     self.process_dsm_h(osnma_hkroot)
-                else:
-                    if self.osnma.get_data('DSM_ID', format='uint') < 12 and self.is_different_DSM:
-                        # new DMS-KROOT block
+                elif self.is_different_DSM:
+                    if self.osnma.get_meaning('DSM_ID') == 'DMS-KROOT ID':
+                        # DMS KROOT block
                         self.process_dsm_kroot(osnma_hkroot)
+                    else:
+                        # DMS PubK block
+                        pass
+                
+                # MACK related handeling
+                self.mack_current_subframe.append(osnma_mack)
 
                 # Actions
                 if self.is_new_subframe and self.is_start_DSM and self.is_different_DSM:
                     self.proceed_kroot_verification()
+
+                if self.is_new_subframe and self.verified_kroot:
+                    self.proceed_tesla_verification()
 
             if index >= max_iter:
                 break
