@@ -30,7 +30,7 @@ class OSNMACore:
         if not ms:
             ms = self.OSNMA_data['MS'].get_meaning()
         
-        return math.floor(((480/nmack) - 16)/(ms + 16))
+        return math.floor(((480/nmack) - ks)//(ms + 16))
 
     def get_key_index(self, gst, position, svid=None, ns=None, nmack=None, gst_0=None):
         if not svid:
@@ -202,6 +202,32 @@ class OSNMACore:
             self.__key_table.update(new_keys_dict)
 
         return verified, key_index
+
+    def mac_verification(self, tesla_keys, mack_subframe, nav_data):
+        
+        mac_blocks = []
+        mack_blocks_len = self.get_meaning('NMACK')
+        mack_blocks_num = self.get_data('NMACK', format='uint')
+        key_size = self.get_meaning('KS')
+
+        # List with blocks of mac data
+        bit_count = 0
+        for block_index in range(mack_blocks_num):
+            mac_blocks.append(mack_subframe[bit_count:bit_count+mack_blocks_len-key_size])
+            bit_count += mack_blocks_len
+
+        macs_per_block = self.__macs_per_mackblock()
+
+        mac_index = 0
+        for mac_block in mac_blocks:
+            for counter in range(macs_per_block):
+                if mac_index == 0 and counter == 0:
+                    print('\tMAC especial, primera')
+                else:
+                    print('\tMAC normal')
+            mac_index += 1
+
+        pass
 
 
 if __name__ == "__main__":

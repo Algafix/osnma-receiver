@@ -112,7 +112,7 @@ class OSNMA_receiver:
             print('\n\t\033[1m\033[30m\033[42m Signature verified!\033[m\n')
         else:
             print('\n\t\033[31m Bad Signature \033[m\n')
-
+    
     def tesla_key_verification(self, mack_subframe, subframe_WN, subframe_TOW):
         """Extract the keys from the subframe and computes the correspondant hashes 
         until it reach the KROOT and compares it with the stored value in 
@@ -137,21 +137,26 @@ class OSNMA_receiver:
             print('Not using mack')
         else:
             key_size = self.osnma.get_meaning('KS')
-
+            verified_keys = []
             bit_count = 0
             for block_index in range(num_mack_blocks):
-                block = mack_subframe[bit_count:bit_count+mack_blocks_len]
+                tesla_key = mack_subframe[bit_count+mack_blocks_len-key_size:bit_count+mack_blocks_len]
                 bit_count += mack_blocks_len
-                macs = block[:-key_size]
-                tesla_key = block[-key_size:]
 
                 verificada, key_index = self.osnma.tesla_key_verification(tesla_key, subframe_WN, 
                                                                 subframe_TOW, block_index)
 
                 if verificada:
+                    verified_keys.append(tesla_key)
                     print('\033[32m Verified Key '+ str(key_index) +': \033[m' + tesla_key.hex)
                 else:
                     print('\033[31m Not verified Key ' + str(key_index) +'\033[m' + tesla_key.hex)
+                
+                return verificada, verified_keys
+
+    def mac_verification(self, tesla_keys, mack_subframe):
+
+        self.osnma.mac_verification(tesla_keys, mack_subframe, self.nav_data_current_subframe)
 
     def mack_subframe_handle(self, waiting_subframes):
         """Process the subframes stored in waiting_subframes and then the current one.
@@ -162,13 +167,17 @@ class OSNMA_receiver:
         """
 
         if waiting_subframes:
-            print('\tPendent subframes: ')
+            print('\tPending subframes: ')
             for subframe in waiting_subframes:
                 self.tesla_key_verification(subframe['MACK'], subframe['WN'], subframe['TOW'])
-            print('\tEnd of pendent subframes')
+            print('\tEnd of pending subframes')
 
         mack_subframe = self.mack_current_subframe
-        self.tesla_key_verification(mack_subframe, self.subframe_WN, self.subframe_TOW)
+        verified_tkey, tesla_keys = self.tesla_key_verification(mack_subframe, self.subframe_WN, self.subframe_TOW)
+
+        if verified_tkey:
+            self.mac_verification(tesla_keys, mack_subframe)
+
 
     def process_subframe_page(self, msg):
         """This method is called for every word read and process common variables to
@@ -192,6 +201,9 @@ class OSNMA_receiver:
             
             # MACK variables
             self.mack_current_subframe = bs.BitArray()
+
+            # NavData variables
+            self.nav_data_current_subframe = []
 
             if (self.is_start_DSM or self.is_different_DSM):
                 print('\nNew Subframe:')
@@ -365,6 +377,9 @@ class OSNMA_receiver:
                 
                 # MACK related handling
                 self.mack_current_subframe.append(osnma_mack)
+
+                # NavData related handling
+                self.nav_data_current_subframe.append(msg)
 
                 # Actions
 
