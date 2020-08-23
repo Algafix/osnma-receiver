@@ -1,3 +1,8 @@
+import sys
+import os.path
+
+sys.path.insert(0, os.path.dirname(sys.path[0]))
+
 import hashlib
 import osnma_core
 import bitstring as bs

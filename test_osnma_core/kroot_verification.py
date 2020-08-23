@@ -1,3 +1,8 @@
+import sys
+import os.path
+
+sys.path.insert(0, os.path.dirname(sys.path[0]))
+
 from auxiliar_data.test_data import KROOTVECTOR
 import bitstring as bs
 import osnma_core 

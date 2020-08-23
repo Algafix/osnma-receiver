@@ -11,6 +11,7 @@ class OSNMA_receiver:
     mack_start = 146
     mack_length = 32
     mack_subframe_len = 480
+    logs_path = 'receiver_logs/'
 
     def __init__(self, gnss=0, svid=1, msg_path=None, pubk_path=None):
         self.msg_path = msg_path
@@ -85,7 +86,7 @@ class OSNMA_receiver:
         consultance.
         """
 
-        csv_file = 'KeyChain.csv'
+        csv_file = self.logs_path+'KeyChain'+str(self.gnss)+str(self.svid)+'.csv'
         csv_columns = ['Index', 'WN', 'TOW', 'Key']
 
         try:
