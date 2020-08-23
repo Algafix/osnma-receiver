@@ -26,10 +26,22 @@ class OSNMA_receiver:
         self.osnma = osnma.OSNMACore(svid)
 
     def load_new_scenario(self, path):
+        """Change the scenario path and loads it.
+        """
         self.msg_path = path
         self.nav_msg_list = self.__load_scenario_navmsg()
 
     def __load_scenario_navmsg(self, gnss=None, svid=None):
+        """Loads the scenario csv saved in self.path. Filters the entries by
+        those with the same gnss and svid as the ones saved.
+
+        :param gnss GNSS system: 0 for Galileo, 1 for GPS
+        :type gnss int
+
+        :param svid SVID of the satellite chosen
+        :type svid int
+
+        """
         
         if gnss is None:
             gnss = self.gnss
@@ -69,6 +81,10 @@ class OSNMA_receiver:
                 ' (' + str(bits) + '/' + str(self.osnma.get_size(field)) + ')')
     
     def print_tesla_chain(self):
+        """Save the osnma_core __key_table in a csv file for further
+        consultance.
+        """
+
         csv_file = 'KeyChain.csv'
         csv_columns = ['Index', 'WN', 'TOW', 'Key']
 
@@ -84,6 +100,10 @@ class OSNMA_receiver:
             raise
 
     def proceed_kroot_verification(self):
+        """Calls the KROOT verification method from osnma_core with the
+        self.pubk_path and handles the result.
+
+        """
 
         self.verified_kroot = self.osnma.kroot_verification(self.pubk_path)
 
@@ -93,6 +113,21 @@ class OSNMA_receiver:
             print('\n\t\033[31m Bad Signature \033[m\n')
 
     def tesla_key_verification(self, mack_subframe, subframe_WN, subframe_TOW):
+        """Extract the keys from the subframe and computes the correspondant hashes 
+        until it reach the KROOT and compares it with the stored value in 
+        osnma.get_data('KROOT'). Decide the number and position of keys from the 
+        fields 'NMACK' and 'KS'.
+        
+        :param mack_subframe Subframe that contain MACs and keys.
+        :type mack_subframe BitArray()
+
+        :param subframe_WN Week Number of the subframe
+        :type subframe_WN BitArray()
+
+        :param subframe_TOW Time of Week (s) of the subframe
+        :type subframe_TOW BitArray()
+
+        """
 
         mack_blocks_len = self.osnma.get_meaning('NMACK')
         num_mack_blocks = self.osnma.get_data('NMACK', format='uint')
@@ -118,6 +153,12 @@ class OSNMA_receiver:
                     print('\033[31m Not verified Key ' + str(key_index) +'\033[m' + tesla_key.hex)
 
     def mack_subframe_handle(self, waiting_subframes):
+        """Process the subframes stored in waiting_subframes and then the current one.
+        
+        :param waiting_subframes Subframes stored as a dictionary with keys WN, TOW and MACK. Values as BitArray()
+        :type waiting_subframes list
+
+        """
 
         if waiting_subframes:
             print('\tPendent subframes: ')
@@ -127,7 +168,6 @@ class OSNMA_receiver:
 
         mack_subframe = self.mack_current_subframe
         self.tesla_key_verification(mack_subframe, self.subframe_WN, self.subframe_TOW)
-
 
     def process_subframe_page(self, msg):
         """This method is called for every word read and process common variables to
@@ -282,8 +322,9 @@ class OSNMA_receiver:
                 # All bits from current page read
                 break
 
-
     def start(self, max_iter):
+        """Starts the receiver simulation.
+        """
 
         if self.nav_msg_list is None:
             raise TypeError('There are no messages loaded.')
@@ -303,10 +344,10 @@ class OSNMA_receiver:
             # Wait until transmission starts
             if (osnma_hkroot.uint + osnma_mack.uint) != 0:
                 
-                # Subframe page handeling
+                # Subframe page handling
                 self.process_subframe_page(msg)
 
-                # HKROOT related handeling
+                # HKROOT related handling
                 if self.subframe_page == 1: 
                     # NMA Header
                     self.process_nma_h(osnma_hkroot)
@@ -321,18 +362,22 @@ class OSNMA_receiver:
                         # DMS PubK block
                         pass
                 
-                # MACK related handeling
+                # MACK related handling
                 self.mack_current_subframe.append(osnma_mack)
 
                 # Actions
+
+                # KROOT verification
                 if self.is_new_subframe and self.is_start_DSM and self.is_different_DSM:
                     self.proceed_kroot_verification()
 
+                # Add subframes to the pending list
                 if self.is_new_subframe and not self.verified_kroot:
                     mack_waiting_subframes.append({'WN': self.subframe_WN.copy(), 
                                                     'TOW': self.subframe_TOW.copy(),
                                                     'MACK': self.mack_current_subframe.copy()})
 
+                # Verify TESLA key and MAC fields
                 if self.is_new_subframe and self.verified_kroot:
                     self.mack_subframe_handle(mack_waiting_subframes)
                     mack_waiting_subframes = []
