@@ -68,7 +68,7 @@ class OSNMACore:
             if not gst_0:
                 gst_0 = self.__get_gst0().uint
             
-            gst_subfragment = gst_0 + 30 * math.floor(m//(ns * nmack))
+            gst_subfragment = gst_0 + 30 * math.floor((m-1)//(ns * nmack))
             gst_subfragment = bs.BitArray(uint=gst_subfragment, length=32)
 
         return gst_subfragment
@@ -181,9 +181,6 @@ class OSNMACore:
         key_index = self.get_key_index(gst, position, svid)
         new_keys_dict = {}
 
-        print('Key index: ' + str(key_index))
-        
-
         new_keys_dict[key_index] = osnma_structures.KeyEntry(key_index, gst_wn, gst_tow, key)
 
         for index in reversed(range(key_index)):
@@ -192,9 +189,6 @@ class OSNMACore:
             hash_object.update((key + gst + alpha).bytes)
             prev_key = bs.BitArray(hash_object.digest())
             key = prev_key[:key_size]
-
-            if(index == 864):
-                print('Key ' + str(index) + ': ' + key.hex)
             
             if index not in self.__key_table.keys():
                 new_keys_dict[index] = osnma_structures.KeyEntry(index, gst[:12], gst[12:], key)
@@ -204,7 +198,7 @@ class OSNMACore:
         if verified:
             self.__key_table.update(new_keys_dict)
 
-        return verified
+        return verified, key_index
 
 
 if __name__ == "__main__":

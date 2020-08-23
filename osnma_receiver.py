@@ -93,16 +93,18 @@ class OSNMA_receiver:
                 macs = block[:-key_size]
                 tesla_key = block[-key_size:]
 
-                verificada = self.osnma.tesla_key_verification(tesla_key, self.subframe_WN, 
+                verificada, key_index = self.osnma.tesla_key_verification(tesla_key, self.subframe_WN, 
                                                                 self.subframe_TOW, block_index)
                 
+                #print('WN: ' + str(self.subframe_WN.uint) + 'TOW: ' + str(self.subframe_TOW.uint))
+                #print('Key: ' + tesla_key.hex)
+
                 if verificada:
-                    print('VERIFICADA')
+                    print('\033[32m Verified Key '+ str(key_index) +': \033[m' + tesla_key.hex)
                 else:
-                    print('TESLA KEY ERROR')
+                    print('\033[31m Not verified Key ' + str(key_index) +'\033[m' + tesla_key.hex)
                 
-                print('WN: ' + str(self.subframe_WN.uint) + '\nTOW: ' + str(self.subframe_TOW.uint))
-                print('Key: ' + tesla_key.hex)
+                
 
 
     def process_subframe_page(self, msg):
