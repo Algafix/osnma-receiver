@@ -1,4 +1,5 @@
 import os
+import csv
 import pandas as pd
 import bitstring as bs
 import osnma_core as osnma
@@ -67,6 +68,21 @@ class OSNMA_receiver:
         print('Reading ' + str(self.osnma.get_description(field)) + 
                 ' (' + str(bits) + '/' + str(self.osnma.get_size(field)) + ')')
     
+    def print_tesla_chain(self):
+        csv_file = 'KeyChain.csv'
+        csv_columns = ['Index', 'WN', 'TOW', 'Key']
+
+        try:
+            with open(csv_file, 'w') as csv_descriptor:
+                csv_writer = csv.DictWriter(csv_descriptor, fieldnames=csv_columns)
+                csv_writer.writeheader()
+                
+                for key in sorted(self.osnma.get_key_table()):
+                    key_entry = self.osnma.get_key_table()[key]
+                    csv_writer.writerow(key_entry.get_as_dict())
+        except IOError:
+            raise
+
     def proceed_kroot_verification(self):
 
         self.verified_kroot = self.osnma.kroot_verification(self.pubk_path)
@@ -103,9 +119,6 @@ class OSNMA_receiver:
                     print('\033[32m Verified Key '+ str(key_index) +': \033[m' + tesla_key.hex)
                 else:
                     print('\033[31m Not verified Key ' + str(key_index) +'\033[m' + tesla_key.hex)
-                
-                
-
 
     def process_subframe_page(self, msg):
         """This method is called for every word read and process common variables to
@@ -308,10 +321,13 @@ class OSNMA_receiver:
                     self.proceed_tesla_verification()
 
             if index >= max_iter:
+                # Arbitrary stop
                 break
 
             else:
                 pass
+        
+        self.print_tesla_chain()
 
 if __name__ == "__main__":
     print('Running wrong file!')

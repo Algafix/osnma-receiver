@@ -6,6 +6,9 @@ class KeyEntry:
         self.wn = wn
         self.tow = tow
         self.key = key
+    
+    def get_as_dict(self):
+        return {'Index':self.index, 'WN':self.wn.uint, 'TOW':self.tow.uint, 'Key':self.key.hex}
 
 pubk_lengths = {'ECDSA P-224': {'signature':448, 'npk':232},
                 'ECDSA P-256': {'signature':512, 'npk':264},

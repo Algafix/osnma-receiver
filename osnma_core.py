@@ -86,6 +86,9 @@ class OSNMACore:
         else:
             raise TypeError('Format not accepted (None, uint, bytes)')
     
+    def get_key_table(self):
+        return self.__key_table
+
     def get_meaning(self, field_name):
         return self.OSNMA_data[field_name].get_meaning()
 
