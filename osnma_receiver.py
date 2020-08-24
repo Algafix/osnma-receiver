@@ -26,12 +26,6 @@ class OSNMA_receiver:
 
         self.osnma = osnma.OSNMACore(svid)
 
-    def load_new_scenario(self, path):
-        """Change the scenario path and loads it.
-        """
-        self.msg_path = path
-        self.nav_msg_list = self.__load_scenario_navmsg()
-
     def __load_scenario_navmsg(self, gnss=None, svid=None):
         """Loads the scenario csv saved in self.path. Filters the entries by
         those with the same gnss and svid as the ones saved.
@@ -68,6 +62,12 @@ class OSNMA_receiver:
 
         return nav_msg
     
+    def load_new_scenario(self, path):
+        """Change the scenario path and loads it.
+        """
+        self.msg_path = path
+        self.nav_msg_list = self.__load_scenario_navmsg()
+
     def print_read(self, field):
         if self.osnma.get_repr(field) == None:
             print('Read ' + self.osnma.get_description(field) + ': ' + 
@@ -100,7 +100,19 @@ class OSNMA_receiver:
         except IOError:
             raise
 
-    def proceed_kroot_verification(self):
+    def print_mac_verification(self, mac_dict):
+
+        if mac_dict['mac0'][0]:
+            print('\033[32m Verified MAC0: \033[m'+ mac_dict['mac0'][1].hex +' == ' + mac_dict['mac0'][2].hex)
+        else:
+            print('\033[31m Error in MAC0: \033[m'+ mac_dict['mac0'][1].hex +' != ' + mac_dict['mac0'][2].hex)
+
+        if mac_dict['seq'][0]:
+            print('\033[32m Verified SEQ: \033[m'+ mac_dict['seq'][1].hex +' == ' + mac_dict['seq'][2].hex)
+        else:
+            print('\033[31m Error in SEQ: \033[m'+ mac_dict['seq'][1].hex +' != ' + mac_dict['seq'][2].hex)
+
+    def kroot_verification(self):
         """Calls the KROOT verification method from osnma_core with the
         self.pubk_path and handles the result.
 
@@ -161,25 +173,25 @@ class OSNMA_receiver:
         :type waiting_subframes list
 
         """
-
-        mack_subframe = self.mack_current_subframe
-
+        # Handle waiting subframes
         if waiting_subframes:
             print('\tPending subframes: ')
             for subframe in waiting_subframes:
-                self.tesla_key_verification(subframe['MACK'], subframe['WN'], subframe['TOW'])
-            print('\tEnd of pending subframes')
+                print(' GST: '+str(subframe['WN'].uint) + ' ' + str(subframe['TOW'].uint))
+                verified_key, tesla_keys = self.tesla_key_verification(subframe['MACK'], subframe['WN'], subframe['TOW'])
+                mac_dict = self.osnma.mack_verification(tesla_keys, subframe['MACK'], self.nav_data_current_subframe,
+                                                        subframe['WN'], subframe['TOW'])
+                self.print_mac_verification(mac_dict)
+            print('\tEnd of pending subframes\n')
 
+        # Handle current subframe
+        mack_subframe = self.mack_current_subframe
         verified_tkey, tesla_keys = self.tesla_key_verification(mack_subframe, self.subframe_WN, self.subframe_TOW)
 
         if verified_tkey:
             mac_dict = self.osnma.mack_verification(tesla_keys, mack_subframe, self.nav_data_current_subframe)
-
-            if mac_dict['mac0'][0]:
-                print('\033[32m Verified MAC0: \033[m'+ mac_dict['mac0'][1].hex +' == ' + mac_dict['mac0'][2].hex)
-            else:
-                print('\033[32m Error in MAC0: \033[m'+ mac_dict['mac0'][1].hex +' != ' + mac_dict['mac0'][2].hex)
-
+            self.print_mac_verification(mac_dict)
+                    
     def process_subframe_page(self, msg):
         """This method is called for every word read and process common variables to
         indicate the current state of the receiver such as if its a new subframe, the
@@ -208,10 +220,8 @@ class OSNMA_receiver:
             # NavData variables
             self.nav_data_current_subframe = []
 
-            if (self.is_start_DSM or self.is_different_DSM):
-                print('\nNew Subframe:')
-                print('\tWN: ' + str(self.subframe_WN.uint))
-                print('\tTOW: ' + str(self.subframe_TOW.uint))
+            print('\nNew Subframe:')
+            print('\tWN: ' + str(self.subframe_WN.uint) + ' TOW: ' + str(self.subframe_TOW.uint))
 
             if self.is_start_DSM:
                 self.is_start_DSM = False
@@ -270,7 +280,7 @@ class OSNMA_receiver:
             self.is_different_DSM = True
         elif self.osnma.get_meaning('BID') == 1:
             self.is_different_DSM = False
-            print('Same DMS message as before\n')
+            print('Same DSM message as before\n')
         
         if self.is_different_DSM:
             for field in print_queue:
@@ -384,19 +394,20 @@ class OSNMA_receiver:
                 # NavData related handling
                 self.nav_data_current_subframe.append(bs.BitArray(hex=msg["NavMessage"]))
 
+
                 # Actions
 
                 # KROOT verification
                 if self.is_new_subframe and self.is_start_DSM and self.is_different_DSM:
-                    self.proceed_kroot_verification()
+                    self.kroot_verification()
 
-                # Add subframes to the pending list
+                # Add subframes to the pending list if KROOT not verified
                 if self.is_new_subframe and not self.verified_kroot:
                     mack_waiting_subframes.append({'WN': self.subframe_WN.copy(), 
                                                     'TOW': self.subframe_TOW.copy(),
                                                     'MACK': self.mack_current_subframe.copy()})
 
-                # Verify TESLA key and MAC fields
+                # Verify TESLA key and MAC fields if KROOT verified
                 if self.is_new_subframe and self.verified_kroot:
                     self.mack_subframe_handle(mack_waiting_subframes)
                     mack_waiting_subframes = []

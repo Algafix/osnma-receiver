@@ -262,8 +262,26 @@ class OSNMACore:
         :type BitArray
         """
 
+        # Construct the message to be authenticated
         mac_lt = self.get_meaning('MACLT')
-        print(mac_lt)
+        seq_list = osnma_structures.mac_lookup_table[mac_lt]['sequence']
+        mac_seq = mack_block[0][-16:-4]
+        authenticated_seq = self.get_data('PRN') + self.get_data('GST_WN') + self.get_data('GST_TOW')
+
+        for index, slot in enumerate(seq_list):
+            if slot == 'FLX':
+                authenticated_seq.append(mack_block[index][:-16])
+        
+        # Choose algorithm
+        if self.__MF == 'HMAC-SHA-256':
+            hmac_seq = hmac.new(key=key.bytes, msg=authenticated_seq.bytes, digestmod=hashlib.sha256)
+            computed_mac_seq = bs.BitArray(hmac_seq.digest())[:12]
+        elif self.__MF == 'CMAC-AES':
+            raise TypeError('CMAC-AES not implemented')
+        else:
+            raise TypeError('MAC function rsvd')
+
+        return computed_mac_seq == mac_seq, computed_mac_seq, mac_seq
 
     def mac0_verification(self, mac_entry, nav_data, key):
         """Compute the mac0 verification from it's entry in the first mack block, 
@@ -279,8 +297,9 @@ class OSNMACore:
         :type key BitArray
         """
         
-        self.load('CTR', bs.BitArray(uint=1, length=self.get_size('CTR')))
         filtered_nav_data = self.filter_navigation_data(nav_data, 0)
+
+        self.load('CTR', bs.BitArray(uint=1, length=self.get_size('CTR')))
         mac_size = self.get_meaning('MS')
         tag0 = mac_entry[:mac_size]
         
@@ -308,7 +327,12 @@ class OSNMACore:
     def mac_verification(self, mac_entry, nav_data, key, counter):
         pass
 
-    def mack_verification(self, tesla_keys, mack_subframe, nav_data):
+    def mack_verification(self, tesla_keys, mack_subframe, nav_data, gst_wn=None, gst_tow=None):
+        
+        if gst_wn and gst_tow:
+            back_gst_wn = self.get_data('GST_WN')
+            back_gst_tow = self.get_data('GST_TOW')
+            self.load_batch({'GST_WN': gst_wn, 'GST_TOW': gst_tow})
 
         mack_formatted = self.format_mack_data(mack_subframe)
         mack_result_dict = {}
@@ -319,6 +343,9 @@ class OSNMACore:
                     mack_result_dict['seq'] = self.mac_seq_verification(block, tesla_keys[block_i])
                 else:
                     self.mac_verification(mac, nav_data, tesla_keys[block_i], mac_i)
+
+        if gst_wn and gst_tow:
+            self.load_batch({'GST_WN': back_gst_wn, 'GST_TOW': back_gst_tow})
 
         return mack_result_dict
 
