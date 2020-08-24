@@ -203,26 +203,61 @@ class OSNMACore:
 
         return verified, key_index
 
-    def mac_verification(self, tesla_keys, mack_subframe, nav_data):
+    def filter_navigation_data(self, nav_data, adkd):
+        """Filters nav_data depending on the adkd parameter. Return all the nav_data to
+        verifiy concatenated.
+
+        :param nav_data List with 15 BitArray objects containing full pages of the sub frame
+        :type nav_data list
+
+        :param adkd Authentication Data and Key Delay that indicates the data to authenticate
+        :type int
+        """
+        filtered_nav_data = bs.BitArray()
+        data_masks = osnma_structures.adkd_masks[adkd]
+
+        for mask in data_masks:
+            page = mask['page']
+            for bit_block in mask['bits']:
+                print(bit_block)
+                filtered_nav_data.append(nav_data[page][bit_block[0]:bit_block[1]])
+        
+        return filtered_nav_data
+
+    def mac0_verification(self, mac_entry, nav_data, gst_sf, key):
+
+        filtered_nav_data = self.filter_navigation_data(nav_data, 0)
+
+        print(filtered_nav_data)
+        print(filtered_nav_data.length)
+
+    def mac_verification(self, mac_entry, nav_data, gst_sf, key, counter):
+        pass
+
+    def mack_verification(self, tesla_keys, mack_subframe, nav_data, gst_sf):
         
         mac_blocks = []
         mack_blocks_len = self.get_meaning('NMACK')
         mack_blocks_num = self.get_data('NMACK', format='uint')
         key_size = self.get_meaning('KS')
 
-        # List with blocks of mac data
+        # Populates a list with blocks of mac data
         bit_count = 0
         for block_index in range(mack_blocks_num):
             mac_blocks.append(mack_subframe[bit_count:bit_count+mack_blocks_len-key_size])
             bit_count += mack_blocks_len
 
         macs_per_block = self.__macs_per_mackblock()
+        mac_entry_size = self.get_meaning('MS') + 16
 
+        # Extract macs from each bloc and process it 
         mac_index = 0
         for mac_block in mac_blocks:
             for counter in range(macs_per_block):
+                mac_entry = mac_block[counter*mac_entry_size:(counter+1)*mac_entry_size]
                 if mac_index == 0 and counter == 0:
-                    print('\tMAC especial, primera')
+                    print('\tMAC0')
+                    self.mac0_verification(mac_entry,nav_data, gst_sf, tesla_keys[mac_index])
                 else:
                     print('\tMAC normal')
             mac_index += 1

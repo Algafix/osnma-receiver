@@ -152,11 +152,7 @@ class OSNMA_receiver:
                 else:
                     print('\033[31m Not verified Key ' + str(key_index) +'\033[m' + tesla_key.hex)
                 
-                return verificada, verified_keys
-
-    def mac_verification(self, tesla_keys, mack_subframe):
-
-        self.osnma.mac_verification(tesla_keys, mack_subframe, self.nav_data_current_subframe)
+            return verificada, verified_keys
 
     def mack_subframe_handle(self, waiting_subframes):
         """Process the subframes stored in waiting_subframes and then the current one.
@@ -173,11 +169,11 @@ class OSNMA_receiver:
             print('\tEnd of pending subframes')
 
         mack_subframe = self.mack_current_subframe
+        gst_sf = self.subframe_WN + self.subframe_TOW
         verified_tkey, tesla_keys = self.tesla_key_verification(mack_subframe, self.subframe_WN, self.subframe_TOW)
 
         if verified_tkey:
-            self.mac_verification(tesla_keys, mack_subframe)
-
+            self.osnma.mack_verification(tesla_keys, mack_subframe, self.nav_data_current_subframe, gst_sf)
 
     def process_subframe_page(self, msg):
         """This method is called for every word read and process common variables to
@@ -379,7 +375,7 @@ class OSNMA_receiver:
                 self.mack_current_subframe.append(osnma_mack)
 
                 # NavData related handling
-                self.nav_data_current_subframe.append(msg)
+                self.nav_data_current_subframe.append(bs.BitArray(hex=msg["NavMessage"]))
 
                 # Actions
 

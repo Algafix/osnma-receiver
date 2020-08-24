@@ -35,3 +35,33 @@ cryptographic_structures = {
     'key_m': ['nKEY','GST','alpha','P3']
 }
 
+adkd_masks = [
+    [
+        {
+            'word': 1,
+            'page': 10,
+            'bits': [(8,114),(122,136)]
+        },
+        {
+            'word': 2,
+            'page': 0,
+            'bits': [(8,114),(122,136)]
+        },
+        {
+            'word': 3,
+            'page': 11,
+            'bits': [(8,114),(122,138)]
+        },
+        {
+            'word': 4,
+            'page': 1,
+            'bits': [(8,114),(122,136)]
+        },
+        {
+            'word': 5,
+            'page': 12,
+            'bits': [(8,75)]
+        }
+    ]
+]
+
