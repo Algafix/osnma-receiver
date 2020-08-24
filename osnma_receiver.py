@@ -109,9 +109,9 @@ class OSNMA_receiver:
         self.verified_kroot = self.osnma.kroot_verification(self.pubk_path)
 
         if self.verified_kroot:
-            print('\n\t\033[1m\033[30m\033[42m Signature verified!\033[m\n')
+            print('\n\t\033[1m\033[30m\033[42m KROOT signature verified!\033[m\n')
         else:
-            print('\n\t\033[31m Bad Signature \033[m\n')
+            print('\n\t\033[31m KROOT bad signature \033[m\n')
     
     def tesla_key_verification(self, mack_subframe, subframe_WN, subframe_TOW):
         """Extract the keys from the subframe and computes the correspondant hashes 
@@ -161,6 +161,7 @@ class OSNMA_receiver:
         :type waiting_subframes list
 
         """
+
         mack_subframe = self.mack_current_subframe
 
         if waiting_subframes:

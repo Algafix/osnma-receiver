@@ -228,18 +228,55 @@ class OSNMACore:
         
         return filtered_nav_data
 
+    def format_mack_data(self, raw_mack_data):
+        """Returns a list of list with the mack blocks and each entry.
+
+        :param raw_mack_data Subframe mack data with keys
+        :type BitArray
+        """
+
+        mack_block_len = self.get_meaning('NMACK')
+        blocks_per_mack = self.get_data('NMACK', format='uint')
+        key_len = self.get_meaning('KS')
+        macs_per_block = self.__macs_per_mackblock()
+        mac_entry_len = self.get_meaning('MS') + 16
+
+        mack_blocks = []
+        for block_index in range(blocks_per_mack):
+            mack_block = raw_mack_data[block_index*mack_block_len:(block_index+1)*mack_block_len-key_len]
+            mac_entries = []
+            for mac_index in range(macs_per_block):
+                mac_entry = mack_block[mac_index*mac_entry_len:(mac_index+1)*mac_entry_len]
+                mac_entries.append(mac_entry)
+            mack_blocks.append(mac_entries)
+
+        return mack_blocks
+
+    def mac_seq_verification(self, mack_block, key):
+        """Verify mac seq field of the first mac entry on the first mack block.
+        
+        :param mack_block List with mac entries as BitArray
+        :type mack_block list
+
+        :param key Key of the first mack_block.
+        :type BitArray
+        """
+
+        mac_lt = self.get_meaning('MACLT')
+        print(mac_lt)
+
     def mac0_verification(self, mac_entry, nav_data, key):
         """Compute the mac0 verification from it's entry in the first mack block, 
         the navigation data of the subframe and it's correspondant key.
 
         :param mac_entry First MAC entry from the first mack block.
-        :type mac_entry BitArray()
+        :type mac_entry BitArray
 
         :param nav_data List with 15 BitArray objects containing full pages of the sub frame
         :type nav_data list
 
         :param key Key from the first mack block.
-        :type key BitArray()
+        :type key BitArray
         """
         
         self.load('CTR', bs.BitArray(uint=1, length=self.get_size('CTR')))
@@ -272,32 +309,16 @@ class OSNMACore:
         pass
 
     def mack_verification(self, tesla_keys, mack_subframe, nav_data):
-        
-        mack_blocks_len = self.get_meaning('NMACK')
-        mack_blocks_num = self.get_data('NMACK', format='uint')
-        key_size = self.get_meaning('KS')
+
+        mack_formatted = self.format_mack_data(mack_subframe)
         mack_result_dict = {}
-
-        # Organizes the raw data in a list of blocks
-        mac_blocks = []
-        bit_count = 0
-        for block_index in range(mack_blocks_num):
-            mac_blocks.append(mack_subframe[bit_count:bit_count+mack_blocks_len-key_size])
-            bit_count += mack_blocks_len
-
-        macs_per_block = self.__macs_per_mackblock()
-        mac_entry_size = self.get_meaning('MS') + 16
-
-        # Extract macs from each block and process it 
-        mac_index = 0
-        for mac_block in mac_blocks:
-            for counter in range(macs_per_block):
-                mac_entry = mac_block[counter*mac_entry_size:(counter+1)*mac_entry_size]
-                if mac_index == 0 and counter == 0:
-                    mack_result_dict['mac0'] = self.mac0_verification(mac_entry, nav_data, tesla_keys[mac_index])
+        for block_i, block in enumerate(mack_formatted):
+            for mac_i, mac in enumerate(block):
+                if block_i == 0 and mac_i == 0:
+                    mack_result_dict['mac0'] = self.mac0_verification(mac, nav_data, tesla_keys[block_i])
+                    mack_result_dict['seq'] = self.mac_seq_verification(block, tesla_keys[block_i])
                 else:
-                    self.mac_verification(mac_entry, nav_data, tesla_keys[mac_index], counter)
-            mac_index += 1
+                    self.mac_verification(mac, nav_data, tesla_keys[block_i], mac_i)
 
         return mack_result_dict
 
