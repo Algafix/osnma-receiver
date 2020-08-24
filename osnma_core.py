@@ -1,6 +1,7 @@
 import bitstring as bs
 import math
 import sys
+import hmac
 import ecdsa
 import hashlib
 import auxiliar_data.osnma_fields as osnma_fields
@@ -17,8 +18,10 @@ class OSNMACore:
         self.OSNMA_crypto = osnma_structures.cryptographic_structures
         self.pubk_lengths = osnma_structures.pubk_lengths
         self.svid = svid
+        self.load('PRN',bs.BitArray(uint=svid, length=self.get_size('PRN')))
         self.__NS = 36
         self.__HF = None
+        self.__MF = None
         self.__key_table = {}
 
     def __macs_per_mackblock(self, nmack=None, ks=None, ms=None):
@@ -115,6 +118,8 @@ class OSNMACore:
                 self.OSNMA_data['KROOT'].size = current_field.get_meaning()
             elif current_field.name == 'HF':
                 self.__HF = current_field.get_meaning()
+            elif current_field.name == 'MF':
+                self.__MF = current_field.get_meaning()
             elif current_field.name == 'KROOT':
                 entry_wn = self.OSNMA_data['KROOT_WN'].get_data()
                 entry_tow = self.OSNMA_data['KROOT_TOWH'].get_data_uint()*3600 - 30
@@ -219,29 +224,62 @@ class OSNMACore:
         for mask in data_masks:
             page = mask['page']
             for bit_block in mask['bits']:
-                print(bit_block)
                 filtered_nav_data.append(nav_data[page][bit_block[0]:bit_block[1]])
         
         return filtered_nav_data
 
-    def mac0_verification(self, mac_entry, nav_data, gst_sf, key):
+    def mac0_verification(self, mac_entry, nav_data, key):
+        """Compute the mac0 verification from it's entry in the first mack block, 
+        the navigation data of the subframe and it's correspondant key.
 
+        :param mac_entry First MAC entry from the first mack block.
+        :type mac_entry BitArray()
+
+        :param nav_data List with 15 BitArray objects containing full pages of the sub frame
+        :type nav_data list
+
+        :param key Key from the first mack block.
+        :type key BitArray()
+        """
+        
+        self.load('CTR', bs.BitArray(uint=1, length=self.get_size('CTR')))
         filtered_nav_data = self.filter_navigation_data(nav_data, 0)
+        mac_size = self.get_meaning('MS')
+        tag0 = mac_entry[:mac_size]
+        
+        # Construct the authenticated message
+        authenticated_msg = bs.BitArray()
+        for field in self.OSNMA_crypto['mac0_am']:
+            if field == 'P3':
+                authenticated_msg = authenticated_msg.tobytes()
+            elif field == 'navdata':
+                authenticated_msg.append(filtered_nav_data)
+            else:
+                authenticated_msg.append(self.get_data(field))
+        
+        # Choose algorithm
+        if self.__MF == 'HMAC-SHA-256':
+            hmac_mac0 = hmac.new(key=key.bytes, msg=authenticated_msg, digestmod=hashlib.sha256)
+            computed_tag0 = bs.BitArray(hmac_mac0.digest())[:mac_size]
+        elif self.__MF == 'CMAC-AES':
+            raise TypeError('CMAC-AES not implemented')
+        else:
+            raise TypeError('MAC function rsvd')
+        
+        return computed_tag0 == tag0, computed_tag0, tag0
 
-        print(filtered_nav_data)
-        print(filtered_nav_data.length)
-
-    def mac_verification(self, mac_entry, nav_data, gst_sf, key, counter):
+    def mac_verification(self, mac_entry, nav_data, key, counter):
         pass
 
-    def mack_verification(self, tesla_keys, mack_subframe, nav_data, gst_sf):
+    def mack_verification(self, tesla_keys, mack_subframe, nav_data):
         
-        mac_blocks = []
         mack_blocks_len = self.get_meaning('NMACK')
         mack_blocks_num = self.get_data('NMACK', format='uint')
         key_size = self.get_meaning('KS')
+        mack_result_dict = {}
 
-        # Populates a list with blocks of mac data
+        # Organizes the raw data in a list of blocks
+        mac_blocks = []
         bit_count = 0
         for block_index in range(mack_blocks_num):
             mac_blocks.append(mack_subframe[bit_count:bit_count+mack_blocks_len-key_size])
@@ -250,19 +288,18 @@ class OSNMACore:
         macs_per_block = self.__macs_per_mackblock()
         mac_entry_size = self.get_meaning('MS') + 16
 
-        # Extract macs from each bloc and process it 
+        # Extract macs from each block and process it 
         mac_index = 0
         for mac_block in mac_blocks:
             for counter in range(macs_per_block):
                 mac_entry = mac_block[counter*mac_entry_size:(counter+1)*mac_entry_size]
                 if mac_index == 0 and counter == 0:
-                    print('\tMAC0')
-                    self.mac0_verification(mac_entry,nav_data, gst_sf, tesla_keys[mac_index])
+                    mack_result_dict['mac0'] = self.mac0_verification(mac_entry, nav_data, tesla_keys[mac_index])
                 else:
-                    print('\tMAC normal')
+                    self.mac_verification(mac_entry, nav_data, tesla_keys[mac_index], counter)
             mac_index += 1
 
-        pass
+        return mack_result_dict
 
 
 if __name__ == "__main__":

@@ -161,6 +161,7 @@ class OSNMA_receiver:
         :type waiting_subframes list
 
         """
+        mack_subframe = self.mack_current_subframe
 
         if waiting_subframes:
             print('\tPending subframes: ')
@@ -168,12 +169,15 @@ class OSNMA_receiver:
                 self.tesla_key_verification(subframe['MACK'], subframe['WN'], subframe['TOW'])
             print('\tEnd of pending subframes')
 
-        mack_subframe = self.mack_current_subframe
-        gst_sf = self.subframe_WN + self.subframe_TOW
         verified_tkey, tesla_keys = self.tesla_key_verification(mack_subframe, self.subframe_WN, self.subframe_TOW)
 
         if verified_tkey:
-            self.osnma.mack_verification(tesla_keys, mack_subframe, self.nav_data_current_subframe, gst_sf)
+            mac_dict = self.osnma.mack_verification(tesla_keys, mack_subframe, self.nav_data_current_subframe)
+
+            if mac_dict['mac0'][0]:
+                print('\033[32m Verified MAC0: \033[m'+ mac_dict['mac0'][1].hex +' == ' + mac_dict['mac0'][2].hex)
+            else:
+                print('\033[32m Error in MAC0: \033[m'+ mac_dict['mac0'][1].hex +' != ' + mac_dict['mac0'][2].hex)
 
     def process_subframe_page(self, msg):
         """This method is called for every word read and process common variables to
@@ -194,6 +198,8 @@ class OSNMA_receiver:
             # Set subframe WN and TOW correcting page offset up to 30s
             self.subframe_WN = bs.BitArray(uint=msg['WN'], length=self.osnma.get_size('GST_WN'))
             self.subframe_TOW = bs.BitArray(uint=(msg['TOW'] - msg['TOW']%30), length=self.osnma.get_size('GST_TOW'))
+            self.osnma.load('GST_WN', self.subframe_WN)
+            self.osnma.load('GST_TOW', self.subframe_TOW)
             
             # MACK variables
             self.mack_current_subframe = bs.BitArray()

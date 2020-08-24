@@ -44,7 +44,7 @@ for field in data_s.mac0_am:
 # HMAC with sha-256 as per KROOT MF
 
 mac0 = hmac.new(bs.BitArray(MAC0VECTOR['KEY']).bytes, msg = mac_message.bytes, digestmod=hashlib.sha256)
-tag0 = bs.BitArray(hex=mac0.hexdigest())[:MAC0VECTOR['MS']]
+tag0 = bs.BitArray(mac0.digest())[:MAC0VECTOR['MS']]
 
 print('\n==========================================')
 

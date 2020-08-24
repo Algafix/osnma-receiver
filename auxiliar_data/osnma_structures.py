@@ -30,7 +30,7 @@ cryptographic_structures = {
             'KS', 'MS', 'MACLT', 'rsvd', 'MO', 'KROOT_WN', 'KROOT_TOWH',
             'alpha', 'KROOT'],
     'mac0_am': ['PRN', 'GST_WN', 'GST_TOW', 'CTR', 'NMA_S', 'navdata', 'P3'],
-    'mac_am': ['PRN', 'PRN_A', 'GST_WN', 'GST_TOW', 'CTR', 'NMA_S', 'navdata', 'P3'],
+    'mac_am': ['PRN', 'PRN_N', 'GST_WN', 'GST_TOW', 'CTR', 'NMA_S', 'navdata', 'P3'],
     'pkr_m': ['NPKT', 'NPKTID', 'NPK'],
     'key_m': ['nKEY','GST','alpha','P3']
 }
