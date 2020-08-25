@@ -13,7 +13,7 @@ class OSNMA_receiver:
     mack_subframe_len = 480
     logs_path = 'receiver_logs/'
 
-    def __init__(self, gnss=0, svid=1, msg_path=None, pubk_path=None, receiver_name=''):
+    def __init__(self, gnss=0, svid=1, msg_path=None, pubk_path=None, receiver_name='', verbose_mack=False):
         self.msg_path = msg_path
         self.gnss = gnss
         self.svid = svid
@@ -21,6 +21,8 @@ class OSNMA_receiver:
         self.nav_msg_list = None
         self.verified_kroot = False
         self.receiver_name = receiver_name
+
+        self.verbose_mack = verbose_mack
 
         if self.msg_path:
             self.nav_msg_list = self.__load_scenario_navmsg()
@@ -101,18 +103,24 @@ class OSNMA_receiver:
         except IOError:
             raise
 
+    def print_tesla_key_verification(self, verified, key_index, tesla_key):
+        if not verified:
+            print('\033[31m Not verified Key ' + str(key_index) +': \033[m' + tesla_key.hex)
+        elif self.verbose_mack:
+            print('\033[32m Verified Key '+ str(key_index) +': \033[m' + tesla_key.hex)
+    
     def print_mac_verification(self, mac_dict):
 
-        if mac_dict['mac0'][0]:
-            print('\033[32m Verified MAC0: \033[m'+ mac_dict['mac0'][1].hex +' == ' + mac_dict['mac0'][2].hex)
-        else:
+        if not mac_dict['mac0'][0]:
             print('\033[31m Error in MAC0: \033[m'+ mac_dict['mac0'][1].hex +' != ' + mac_dict['mac0'][2].hex)
+        elif self.verbose_mack:
+            print('\033[32m Verified MAC0: \033[m'+ mac_dict['mac0'][1].hex +' == ' + mac_dict['mac0'][2].hex)
 
-        if mac_dict['seq'][0]:
-            print('\033[32m Verified SEQ: \033[m'+ mac_dict['seq'][1].hex +' == ' + mac_dict['seq'][2].hex)
-        else:
+        if not mac_dict['seq'][0]:
             print('\033[31m Error in SEQ: \033[m'+ mac_dict['seq'][1].hex +' != ' + mac_dict['seq'][2].hex)
-
+        elif self.verbose_mack:
+            print('\033[32m Verified SEQ: \033[m'+ mac_dict['seq'][1].hex +' == ' + mac_dict['seq'][2].hex)
+            
     def kroot_verification(self):
         """Calls the KROOT verification method from osnma_core with the
         self.pubk_path and handles the result.
@@ -159,10 +167,7 @@ class OSNMA_receiver:
                 verificada, key_index = self.osnma.tesla_key_verification(tesla_key, subframe_WN, 
                                                                 subframe_TOW, block_index)
                 tesla_keys.append(tesla_key)
-                if verificada:
-                    print('\033[32m Verified Key '+ str(key_index) +': \033[m' + tesla_key.hex)
-                else:
-                    print('\033[31m Not verified Key ' + str(key_index) +': \033[m' + tesla_key.hex)
+                self.print_tesla_key_verification(verificada, key_index, tesla_key)
                 
             return verificada, tesla_keys
 

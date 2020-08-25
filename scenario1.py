@@ -10,11 +10,11 @@ if __name__ == "__main__":
     NPKT = '0b0001'
     NPKID = '0b0000'
     #max_iter = 195
-    max_iter = 300
+    max_iter = 310
     gnss = 0
     svid = 1
 
-    osnma_r = osnma_receiver.OSNMA_receiver(gnss, svid, default_path, pubk_path,'scenario1')
+    osnma_r = osnma_receiver.OSNMA_receiver(gnss, svid, default_path, pubk_path,'scenario1', verbose_mack=False)
     osnma_r.osnma.load('NPKT', NPKT)
     osnma_r.osnma.load('NPKID', NPKID)
 
