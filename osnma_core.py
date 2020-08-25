@@ -171,7 +171,7 @@ class OSNMACore:
         # Proceed with the verification
         verification_result = None
         try:
-            verification_result = vk.verify(self.OSNMA_data['DS'].get_data_bytes(), message.bytes)
+            verification_result = vk.verify(self.OSNMA_data['DS'].get_data_bytes(), message.tobytes())
         except ecdsa.BadSignatureError as e:
             verification_result = False
         finally:

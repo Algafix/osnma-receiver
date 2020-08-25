@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContactPlan xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Satellite Id="0">
+	<Contact Start="2019-03-01T00:00:31" End="2019-03-01T23:59:59" />
+  </Satellite>
+</ContactPlan>
