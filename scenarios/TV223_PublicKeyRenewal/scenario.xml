@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScenarioSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Input>
+    <NavData Signal="GALE1" BinaryFile="input\nav\Gal_inav_data_L1_B.bin" />
+	<NavData Signal="GPSL1" BinaryFile="input\nav\Nav_dump.bin" />
+    <OrbitData Signal="GAL" Rinex="input\rinex\gal_rinex.17L" />
+    <OrbitData Signal="GPS" Rinex="input\rinex\gps_rinex.17N" />
+	<MasksData Path="input\masks" />
+	<ContactPlan XmlFile="input\contact\contact_plan.xml" />
+	<PrivateKey PKID="0" File="input\pk\priv_pem_256v1.pem" DSA="ECDsaP256" />
+	<PrivateKey PKID="1" File="input\pk\priv_pem_256v1.pem" DSA="ECDsaP256" />
+	<PublicKeyRekeying Enabled="1">
+		<DsmPkrMessage MID="0"  NPKT="1" NewPKID="0"  PublicKey="input\pkr\pkrTest256_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="1"  NPKT="1" NewPKID="1"  PublicKey="input\pkr\pkrTest256_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="2"  NPKT="1" NewPKID="2"  PublicKey="input\pkr\pkrTest256_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="3"  NPKT="1" NewPKID="3"  PublicKey="input\pkr\pkrTest256_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="4"  NPKT="1" NewPKID="4"  PublicKey="input\pkr\pkrTest256_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="5"  NPKT="1" NewPKID="5"  PublicKey="input\pkr\pkrTest256_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="6"  NPKT="2" NewPKID="6"  PublicKey="input\pkr\pkrTest384_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="7"  NPKT="2" NewPKID="7"  PublicKey="input\pkr\pkrTest384_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="8"  NPKT="2" NewPKID="8"  PublicKey="input\pkr\pkrTest384_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="9"  NPKT="2" NewPKID="9"  PublicKey="input\pkr\pkrTest384_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="10" NPKT="2" NewPKID="10" PublicKey="input\pkr\pkrTest384_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="11" NPKT="3" NewPKID="11" PublicKey="input\pkr\pkrTest521_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="12" NPKT="3" NewPKID="12" PublicKey="input\pkr\pkrTest521_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="13" NPKT="3" NewPKID="13" PublicKey="input\pkr\pkrTest521_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="14" NPKT="3" NewPKID="14" PublicKey="input\pkr\pkrTest521_compressed_pub.pem" PrivateKey="input\pkr\pkrTest256_priv.pem"/>
+		<DsmPkrMessage MID="15" NPKT="4" NewPKID="0"  EmergencyServiceMessageFile="input\pkr\EmergencyStatusMessage.txt" />	
+	</PublicKeyRekeying>
+  </Input>
+  <Output>
+	<NavData Signal="GALE1" AsciiFile="output\Galileo_nav_in_words_L1_B.dat" />
+    <Log Path="log\" Sys="1" KeyChain="1" DsmKr="1" DsmPkr="1" Mack="1" Macs="1" NavMsg="1" Format="hex"/>
+  </Output>
+  <ScenarioStart Tow="432000" Wn="1018" Duration="0.1:00:00" />
+</ScenarioSettings>

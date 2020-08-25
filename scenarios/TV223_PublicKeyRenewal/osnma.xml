@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<OsnmaSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <!-- TV223 !-->
+  <SystemSettings>
+	<NS>36</NS>
+	<Latency>7</Latency>
+  </SystemSettings>
+   
+  <Chains>
+    <Chain ID="0" NMACK="2" HF="SHA2_256" MF="HmacSha256" KS="128" MS="12" MACLT="8" MO="0" StartWN="1018" StartDOW="5" EndWN="1018" EndDOW="6" >
+		<AlphaHex>FBCA 3456 9875</AlphaHex>
+		<SeedKeyBin>1010111010101110 1010111010101110 1010111010101110 1010111010101110 1010111010101110 1010111010101110 1010111010101110 1010111010101110</SeedKeyBin>
+	</Chain>
+  </Chains>
+  
+  <DSM>
+	<DSM-KROOT UID="STEP0"> <!-- 8 blocks = 240 seconds !-->
+		<NmaHeader NmaStatus="Operational" ChainPKStatus="Nominal" CID="0" ReservedBin="0" />
+		<DsmHeader DSMID="0" />
+		<DsmParams PKID="0" />
+		<ChainParams CIDKR="0" />
+		<KRootParams KrWn="1018" KrTowh="120" />
+		<DsmOffsetting>1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4</DsmOffsetting>
+    </DSM-KROOT>
+	
+	<DSM-KROOT UID="STEP1_a"> <!-- 8 blocks = 240 seconds !-->
+		<NmaHeader NmaStatus="Operational" ChainPKStatus="NPK" CID="0" ReservedBin="0" />
+		<DsmHeader DSMID="1" />
+		<DsmParams PKID="0" />
+		<ChainParams CIDKR="0" />
+		<KRootParams KrWn="1018" KrTowh="120" />
+		<DsmOffsetting>1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4</DsmOffsetting>
+    </DSM-KROOT>
+	<DSM-PKR UID="STEP1_b"> <!-- 13 blocks = 390 seconds !-->
+		<NmaHeader NmaStatus="Operational" ChainPKStatus="NPK" CID="0" ReservedBin="0" />
+		<DsmHeader DSMID="12" />
+		<PkrParams MID="1" />
+		<DsmOffsetting>1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4</DsmOffsetting>
+    </DSM-PKR>
+	
+	<DSM-KROOT UID="STEP2_a"> <!-- 8 blocks = 240 seconds !-->
+		<NmaHeader NmaStatus="Operational" ChainPKStatus="NPK" CID="0" ReservedBin="0" />
+		<DsmHeader DSMID="2" />
+		<DsmParams PKID="1" />
+		<ChainParams CIDKR="0" />
+		<KRootParams KrWn="1018" KrTowh="120" />
+		<DsmOffsetting>1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4</DsmOffsetting>
+    </DSM-KROOT>
+	<DSM-PKR UID="STEP2_b"> <!-- 13 blocks = 390 seconds !-->
+		<NmaHeader NmaStatus="Operational" ChainPKStatus="NPK" CID="0" ReservedBin="0" />
+		<DsmHeader DSMID="12" />
+		<PkrParams MID="1" />
+		<DsmOffsetting>1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4</DsmOffsetting>
+    </DSM-PKR>
+		
+	<DSM-KROOT UID="STEP3">
+		<NmaHeader NmaStatus="Operational" ChainPKStatus="Nominal" CID="0" ReservedBin="0" />
+		<DsmHeader DSMID="3" />
+		<DsmParams PKID="1" />
+		<ChainParams CIDKR="0" />
+		<KRootParams KrWn="1018" KrTowh="120" />
+		<DsmOffsetting>1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4,5,6,7,0,1,2,3,4</DsmOffsetting>
+    </DSM-KROOT>
+  </DSM>
+  
+  <MACK>
+    <MackConfig UID="0">
+		<adkd>0,0,0,0, 0,0,0,0</adkd>
+		<system>E,E,E,E, E,E,E,E</system>
+		<crossauth>0,1,2,3, 0,4,5,6</crossauth>
+		<keyToUse>1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1</keyToUse>
+		<offset>0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0</offset>
+    </MackConfig>
+  </MACK>
+  
+  <Schedule>
+		<Entry UID="STEP0"   MackConfig="0" StartWn="1018" StartTow="432001" />
+		<!-- Step 1 !-->
+		<Entry UID="STEP1_a" MackConfig="0" StartWn="1018" StartTow="432241" />
+		<Entry UID="STEP1_b" MackConfig="0" StartWn="1018" StartTow="432481" />
+		<Entry UID="STEP1_a" MackConfig="0" StartWn="1018" StartTow="432871" />
+		<Entry UID="STEP1_b" MackConfig="0" StartWn="1018" StartTow="433111" />
+		<!-- Step 2 !-->
+		<Entry UID="STEP2_a" MackConfig="0" StartWn="1018" StartTow="433501" />
+		<Entry UID="STEP2_b" MackConfig="0" StartWn="1018" StartTow="433741" />
+		<Entry UID="STEP2_a" MackConfig="0" StartWn="1018" StartTow="434131" />
+		<Entry UID="STEP2_b" MackConfig="0" StartWn="1018" StartTow="434371" />
+		<!-- Step 3 !-->
+		<Entry UID="STEP3"   MackConfig="0" StartWn="1018" StartTow="434761" />
+  </Schedule>
+</OsnmaSettings>
