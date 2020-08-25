@@ -184,7 +184,7 @@ class OSNMA_receiver:
             for subframe in waiting_subframes:
                 print(' GST: '+str(subframe['WN'].uint) + ' ' + str(subframe['TOW'].uint))
                 verified_tkey, tesla_keys = self.tesla_key_verification(subframe['MACK'], subframe['WN'], subframe['TOW'])
-                mac_dict = self.osnma.mack_verification(tesla_keys, subframe['MACK'], self.nav_data_current_subframe,
+                mac_dict = self.osnma.mack_verification(tesla_keys, subframe['MACK'], subframe['NavData'],
                                                         subframe['WN'], subframe['TOW'])
                 self.print_mac_verification(mac_dict)
             print('======== End of pending subframes ========\n')
@@ -432,7 +432,8 @@ class OSNMA_receiver:
                 if self.is_new_subframe and not self.verified_kroot:
                     mack_waiting_subframes.append({'WN': self.subframe_WN.copy(), 
                                                     'TOW': self.subframe_TOW.copy(),
-                                                    'MACK': self.mack_current_subframe.copy()})
+                                                    'MACK': self.mack_current_subframe.copy(),
+                                                    'NavData': self.nav_data_current_subframe.copy()})
 
                 # Verify TESLA key and MAC fields if KROOT verified
                 if self.is_new_subframe and self.verified_kroot:

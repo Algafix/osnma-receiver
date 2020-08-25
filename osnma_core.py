@@ -23,6 +23,7 @@ class OSNMACore:
         self.__HF = None
         self.__MF = None
         self.__key_table = {}
+        self.__mac0_nav_data = None
 
     def __macs_per_mackblock(self, nmack=None, ks=None, ms=None):
         # Load parameters
@@ -341,12 +342,15 @@ class OSNMACore:
         mack_formatted = self.format_mack_data(mack_subframe)
         mack_result_dict = {}
         for block_i, block in enumerate(mack_formatted):
-            for mac_i, mac in enumerate(block):
+            for mac_i, mac_entry in enumerate(block):
                 if block_i == 0 and mac_i == 0:
-                    mack_result_dict['mac0'] = self.mac0_verification(mac, nav_data, tesla_keys[block_i])
+                    IOD_new_data_bit = mac_entry[-4:-3]
+                    if (self.__mac0_nav_data == None) or IOD_new_data_bit:
+                        self.__mac0_nav_data = nav_data
+                    mack_result_dict['mac0'] = self.mac0_verification(mac_entry, self.__mac0_nav_data, tesla_keys[block_i])
                     mack_result_dict['seq'] = self.mac_seq_verification(block, tesla_keys[block_i])
                 else:
-                    self.mac_verification(mac, nav_data, tesla_keys[block_i], mac_i)
+                    self.mac_verification(mac_entry, nav_data, tesla_keys[block_i], mac_i)
 
         if gst_wn and gst_tow:
             self.load_batch({'GST_WN': back_gst_wn, 'GST_TOW': back_gst_tow})
