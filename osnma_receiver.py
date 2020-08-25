@@ -175,14 +175,14 @@ class OSNMA_receiver:
         """
         # Handle waiting subframes
         if waiting_subframes:
-            print('\tPending subframes: ')
+            print('======== Pending subframes ========')
             for subframe in waiting_subframes:
                 print(' GST: '+str(subframe['WN'].uint) + ' ' + str(subframe['TOW'].uint))
                 verified_key, tesla_keys = self.tesla_key_verification(subframe['MACK'], subframe['WN'], subframe['TOW'])
                 mac_dict = self.osnma.mack_verification(tesla_keys, subframe['MACK'], self.nav_data_current_subframe,
                                                         subframe['WN'], subframe['TOW'])
                 self.print_mac_verification(mac_dict)
-            print('\tEnd of pending subframes\n')
+            print('======== End of pending subframes ========\n')
 
         # Handle current subframe
         mack_subframe = self.mack_current_subframe
@@ -198,7 +198,7 @@ class OSNMA_receiver:
         WN and TOW associate with the current subframe, if its a new DSM block, etc.
         
         :param osnma_hkroot Data to be handled as bits
-        :type osnma_hkroot bs.BitArray()
+        :type osnma_hkroot bs.BitArray
 
         """
 
@@ -229,7 +229,6 @@ class OSNMA_receiver:
                 self.dsm_inside_field = False
                 print('\nStart DSM Message')
 
-
         else:
             self.subframe_page += 1
             if self.subframe_page >= 15:
@@ -239,7 +238,7 @@ class OSNMA_receiver:
         """Extract the NMA Header info from data bloc passed as parameter
         
         :param osnma_hkroot Data to be handled as bits
-        :type osnma_hkroot bs.BitArray()
+        :type osnma_hkroot bs.BitArray
 
         """
         # Process the read NMA Header
@@ -252,17 +251,21 @@ class OSNMA_receiver:
             if n_field != self.osnma.get_data(field):
                 self.osnma.load(field, n_field)
                 self.print_read(field)
+        
+        if self.osnma.get_meaning('CPKS') == 'EOC':
+            print('\tEnd of chain ' + str(self.osnma.get_meaning('CID')))
+        elif self.osnma.get_meaning('CPKS') == 'NPK':
+            print('\tPublic Key Renewal!')
     
     def process_dsm_h(self, osnma_hkroot):
         """Extract the DSM Header info from data bloc passed as parameter
         
         :param osnma_hkroot Data to be handled as bits
-        :type osnma_hkroot bs.BitArray()
+        :type osnma_hkroot bs.BitArray
 
         """
         # Process the read DSM Header
         bit_count = 0
-        prev_dsm_id = self.osnma.get_data('DSM_ID')
         print_queue = []
 
         for field in self.osnma.OSNMA_sections['DSM_H']:
@@ -272,16 +275,25 @@ class OSNMA_receiver:
                 self.osnma.load(field, n_field)
                 print_queue.append(field)
 
+        # Check if its the start of a new DSM message
         if self.osnma.get_data('NB') != None:
             if self.osnma.get_meaning('BID') >= self.osnma.get_meaning('NB'):
                 self.is_start_DSM = True
 
-        if prev_dsm_id != self.osnma.get_data('DSM_ID'):
+        # Check if its a DSM message already read
+        current_dsm_id = self.osnma.get_data('DSM_ID')
+        if current_dsm_id not in self.current_dsm_ids.values():
             self.is_different_DSM = True
+            if self.osnma.get_meaning('DSM_ID') == 'DSM-KROOT ID':
+                self.current_dsm_ids['KROOT'] = current_dsm_id
+            else:
+                self.current_dsm_ids['PKR'] = current_dsm_id
+
         elif self.osnma.get_meaning('BID') == 1:
             self.is_different_DSM = False
             print('Same DSM message as before\n')
         
+        # Only print info if its a different DSM message
         if self.is_different_DSM:
             for field in print_queue:
                 self.print_read(field)
@@ -348,7 +360,10 @@ class OSNMA_receiver:
                 # All bits from current page read
                 break
 
-    def start(self, max_iter):
+    def process_dsm_pkr(self, osnma_pkr):
+        pass
+
+    def gobrbrbr(self, max_iter):
         """Starts the receiver simulation.
         """
 
@@ -358,6 +373,7 @@ class OSNMA_receiver:
         self.is_new_subframe = True
         self.is_start_DSM = True
         self.is_different_DSM = None
+        self.current_dsm_ids = {'KROOT': None, 'PKR': None}
 
         mack_waiting_subframes = []
         
@@ -386,7 +402,7 @@ class OSNMA_receiver:
                         self.process_dsm_kroot(osnma_hkroot)
                     else:
                         # DMS PubK block
-                        pass
+                        self.process_dsm_pkr(osnma_hkroot)
                 
                 # MACK related handling
                 self.mack_current_subframe.append(osnma_mack)

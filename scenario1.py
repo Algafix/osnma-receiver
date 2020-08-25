@@ -18,7 +18,7 @@ if __name__ == "__main__":
     osnma_r.osnma.load('NPKT', NPKT)
     osnma_r.osnma.load('NPKID', NPKID)
 
-    osnma_r.start(max_iter)
+    osnma_r.gobrbrbr(max_iter)
 
 
 
