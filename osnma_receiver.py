@@ -149,7 +149,7 @@ class OSNMA_receiver:
             print('Not using mack')
         else:
             key_size = self.osnma.get_meaning('KS')
-            verified_keys = []
+            tesla_keys = []
             bit_count = 0
             for block_index in range(num_mack_blocks):
                 tesla_key = mack_subframe[bit_count+mack_blocks_len-key_size:bit_count+mack_blocks_len]
@@ -157,14 +157,13 @@ class OSNMA_receiver:
 
                 verificada, key_index = self.osnma.tesla_key_verification(tesla_key, subframe_WN, 
                                                                 subframe_TOW, block_index)
-
+                tesla_keys.append(tesla_key)
                 if verificada:
-                    verified_keys.append(tesla_key)
                     print('\033[32m Verified Key '+ str(key_index) +': \033[m' + tesla_key.hex)
                 else:
-                    print('\033[31m Not verified Key ' + str(key_index) +'\033[m' + tesla_key.hex)
+                    print('\033[31m Not verified Key ' + str(key_index) +': \033[m' + tesla_key.hex)
                 
-            return verificada, verified_keys
+            return verificada, tesla_keys
 
     def mack_subframe_handle(self, waiting_subframes):
         """Process the subframes stored in waiting_subframes and then the current one.
@@ -178,7 +177,7 @@ class OSNMA_receiver:
             print('======== Pending subframes ========')
             for subframe in waiting_subframes:
                 print(' GST: '+str(subframe['WN'].uint) + ' ' + str(subframe['TOW'].uint))
-                verified_key, tesla_keys = self.tesla_key_verification(subframe['MACK'], subframe['WN'], subframe['TOW'])
+                verified_tkey, tesla_keys = self.tesla_key_verification(subframe['MACK'], subframe['WN'], subframe['TOW'])
                 mac_dict = self.osnma.mack_verification(tesla_keys, subframe['MACK'], self.nav_data_current_subframe,
                                                         subframe['WN'], subframe['TOW'])
                 self.print_mac_verification(mac_dict)

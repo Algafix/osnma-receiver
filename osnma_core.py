@@ -197,11 +197,12 @@ class OSNMACore:
             hash_object.update((key + gst + alpha).bytes)
             prev_key = bs.BitArray(hash_object.digest())
             key = prev_key[:key_size]
-            
+
             if index not in self.__key_table.keys():
                 new_keys_dict[index] = osnma_structures.KeyEntry(index, gst[:12], gst[12:], key)
-
-        verified = (key == self.__key_table[0].key)
+            else:
+                verified = (key == self.__key_table[index].key)
+                break
 
         if verified:
             self.__key_table.update(new_keys_dict)
