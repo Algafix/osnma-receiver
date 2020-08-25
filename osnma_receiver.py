@@ -279,6 +279,7 @@ class OSNMA_receiver:
 
         if self.is_start_DSM:
             self.syncronized = True
+            self.last_DMS_block = False
             self.dsm_section_pos = 0
             self.dsm_inside_field = False
             print('\nStart DSM Message\n')
