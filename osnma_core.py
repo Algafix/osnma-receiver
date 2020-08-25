@@ -104,6 +104,9 @@ class OSNMACore:
     def get_field(self, field_name):
         return self.OSNMA_data[field_name]
 
+    def load_floating_key(self, index, gst_WN, gst_TOW, key):
+        self.__key_table[index] = osnma_structures.KeyEntry(index, gst_WN, gst_TOW, key)
+
     def load(self, field_name, data):
         try:
             # Try to create a BitArray object with the data
@@ -190,7 +193,7 @@ class OSNMACore:
         new_keys_dict = {}
 
         new_keys_dict[key_index] = osnma_structures.KeyEntry(key_index, gst_wn, gst_tow, key)
-
+        
         for index in reversed(range(key_index)):
             gst = self.__gst_subfragment(index)
             hash_object = hashlib.new(self.__HF)
