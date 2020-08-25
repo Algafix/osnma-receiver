@@ -223,12 +223,6 @@ class OSNMA_receiver:
             print('\nNew Subframe:')
             print('\tWN: ' + str(self.subframe_WN.uint) + ' TOW: ' + str(self.subframe_TOW.uint))
 
-            if self.is_start_DSM:
-                self.is_start_DSM = False
-                self.dsm_section_pos = 0
-                self.dsm_inside_field = False
-                print('\nStart DSM Message')
-
         else:
             self.subframe_page += 1
             if self.subframe_page >= 15:
@@ -267,7 +261,6 @@ class OSNMA_receiver:
         # Process the read DSM Header
         bit_count = 0
         print_queue = []
-
         for field in self.osnma.OSNMA_sections['DSM_H']:
             n_field = osnma_hkroot[bit_count:bit_count + self.osnma.get_size(field)]
             bit_count += self.osnma.get_size(field)
@@ -275,23 +268,32 @@ class OSNMA_receiver:
                 self.osnma.load(field, n_field)
                 print_queue.append(field)
 
-        # Check if its the start of a new DSM message
-        if self.osnma.get_data('NB') != None:
-            if self.osnma.get_meaning('BID') >= self.osnma.get_meaning('NB'):
-                self.is_start_DSM = True
 
-        # Check if its a DSM message already read
-        current_dsm_id = self.osnma.get_data('DSM_ID')
-        if current_dsm_id not in self.current_dsm_ids.values():
-            self.is_different_DSM = True
-            if self.osnma.get_meaning('DSM_ID') == 'DSM-KROOT ID':
-                self.current_dsm_ids['KROOT'] = current_dsm_id
+        # Check if this subframe is the start of a DSM message
+        self.is_start_DSM = self.osnma.get_meaning('BID') == 1
+
+        if self.is_start_DSM:
+            self.syncronized = True
+            self.dsm_section_pos = 0
+            self.dsm_inside_field = False
+            print('\nStart DSM Message\n')
+
+            # Check if its a DSM message already read
+            current_dsm_id = self.osnma.get_data('DSM_ID')
+            if current_dsm_id not in self.current_dsm_ids.values():
+                self.is_different_DSM = True
+                if self.osnma.get_meaning('DSM_ID') == 'DSM-KROOT ID':
+                    self.current_dsm_ids['KROOT'] = current_dsm_id
+                else:
+                    self.current_dsm_ids['PKR'] = current_dsm_id
             else:
-                self.current_dsm_ids['PKR'] = current_dsm_id
-
-        elif self.osnma.get_meaning('BID') == 1:
-            self.is_different_DSM = False
-            print('Same DSM message as before\n')
+                self.is_different_DSM = False
+                print('Same DSM message as before\n')
+        elif self.syncronized:
+            # Check if this is last subframe of a DSM message
+            self.last_DMS_block = self.osnma.get_meaning('BID') >= self.osnma.get_meaning('NB')
+        else:
+            print('\033[31m\tWaiting for start of next DSM\033[m')
         
         # Only print info if its a different DSM message
         if self.is_different_DSM:
@@ -311,6 +313,9 @@ class OSNMA_receiver:
         
         for field in self.osnma.OSNMA_sections['DMS_KROOT'][self.dsm_section_pos:]:
             # Load fields
+            if field == 'P1':
+                break
+            
             if not self.dsm_inside_field:
                 if (bit_count + self.osnma.get_size(field)) <= self.hkroot_length:
                     # It fits
@@ -332,7 +337,6 @@ class OSNMA_receiver:
                     next_page = True
 
                     self.print_reading(field, self.dsm_left_field_length)
-
             else:
                 if (self.osnma.get_size(field) - self.dsm_left_field_length) > self.hkroot_length:
                     # Middle of field and still not finished in this page
@@ -371,8 +375,9 @@ class OSNMA_receiver:
             raise TypeError('There are no messages loaded.')
 
         self.is_new_subframe = True
-        self.is_start_DSM = True
-        self.is_different_DSM = None
+        self.last_DMS_block = False
+        self.is_different_DSM = True
+        self.syncronized = False
         self.current_dsm_ids = {'KROOT': None, 'PKR': None}
 
         mack_waiting_subframes = []
@@ -396,7 +401,7 @@ class OSNMA_receiver:
                 elif self.subframe_page == 2:
                     # DMS Header
                     self.process_dsm_h(osnma_hkroot)
-                elif self.is_different_DSM:
+                elif self.is_different_DSM and self.syncronized:
                     if self.osnma.get_meaning('DSM_ID') == 'DMS-KROOT ID':
                         # DMS KROOT block
                         self.process_dsm_kroot(osnma_hkroot)
@@ -414,7 +419,7 @@ class OSNMA_receiver:
                 # Actions
 
                 # KROOT verification
-                if self.is_new_subframe and self.is_start_DSM and self.is_different_DSM:
+                if self.is_new_subframe and self.last_DMS_block and self.is_different_DSM:
                     self.kroot_verification()
 
                 # Add subframes to the pending list if KROOT not verified
