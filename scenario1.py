@@ -14,7 +14,8 @@ if __name__ == "__main__":
     gnss = 0
     svid = 1
 
-    osnma_r = osnma_receiver.OSNMA_receiver(gnss, svid, default_path, pubk_path,'scenario1', verbose_mack=True)
+    osnma_r = osnma_receiver.OSNMA_receiver(gnss, svid, default_path, pubk_path,'scenario1',
+                                    verbose_mack=True, verbose_headers=False, only_headers=False)
     osnma_r.osnma.load('NPKT', NPKT)
     osnma_r.osnma.load('NPKID', NPKID)
 

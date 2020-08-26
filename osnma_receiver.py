@@ -13,7 +13,8 @@ class OSNMA_receiver:
     mack_subframe_len = 480
     logs_path = 'receiver_logs/'
 
-    def __init__(self, gnss=0, svid=1, msg_path=None, pubk_path=None, receiver_name='', verbose_mack=False):
+    def __init__(self, gnss=0, svid=1, msg_path=None, pubk_path=None, receiver_name='', 
+                verbose_mack=False, verbose_headers=False, only_headers=False):
         self.msg_path = msg_path
         self.gnss = gnss
         self.svid = svid
@@ -23,6 +24,8 @@ class OSNMA_receiver:
         self.receiver_name = receiver_name
 
         self.verbose_mack = verbose_mack
+        self.verbose_headers = verbose_headers
+        self.only_headers = only_headers
 
         if self.msg_path:
             self.nav_msg_list = self.__load_scenario_navmsg()
@@ -71,18 +74,20 @@ class OSNMA_receiver:
         self.msg_path = path
         self.nav_msg_list = self.__load_scenario_navmsg()
 
-    def print_read(self, field):
-        if self.osnma.get_repr(field) == None:
-            print('Read ' + self.osnma.get_description(field) + ': ' + 
-            str(self.osnma.get_meaning(field)) + 
-            ' (0b' + self.osnma.get_data(field).bin + ')')
-        else:
-            print('Read ' + self.osnma.get_description(field) + ': ' + 
-            str(self.osnma.get_meaning(field)))
+    def print_read(self, field, no_verbose=False):
+        if not no_verbose:
+            if self.osnma.get_repr(field) == None:
+                print('Read ' + self.osnma.get_description(field) + ': ' + 
+                str(self.osnma.get_meaning(field)) + 
+                ' (0b' + self.osnma.get_data(field).bin + ')')
+            else:
+                print('Read ' + self.osnma.get_description(field) + ': ' + 
+                str(self.osnma.get_meaning(field)))
 
-    def print_reading(self, field, bits):
-        print('Reading ' + str(self.osnma.get_description(field)) + 
-                ' (' + str(bits) + '/' + str(self.osnma.get_size(field)) + ')')
+    def print_reading(self, field, bits, no_verbose=False):
+        if not no_verbose:
+            print('Reading ' + str(self.osnma.get_description(field)) + 
+                    ' (' + str(bits) + '/' + str(self.osnma.get_size(field)) + ')')
     
     def print_tesla_chain(self):
         """Save the osnma_core __key_table in a csv file for further
@@ -243,19 +248,20 @@ class OSNMA_receiver:
         # Process the read NMA Header
         self.osnma.load('NMA_H', osnma_hkroot)
         bit_count = 0
+        print_queue = []
         for field in self.osnma.OSNMA_sections['NMA_H']:
             n_field = osnma_hkroot[bit_count:bit_count + self.osnma.get_size(field)]
             bit_count += self.osnma.get_size(field)
 
             if n_field != self.osnma.get_data(field):
                 self.osnma.load(field, n_field)
-                self.print_read(field)
-        
-        if self.osnma.get_meaning('CPKS') == 'EOC':
-            print('\tEnd of chain ' + str(self.osnma.get_meaning('CID')))
-        elif self.osnma.get_meaning('CPKS') == 'NPK':
-            print('\tPublic Key Renewal!')
-    
+                print_queue.append(field)
+            elif self.verbose_headers:
+                print_queue.append(field)
+            
+        for field in print_queue:
+            self.print_read(field)
+
     def process_dsm_h(self, osnma_hkroot):
         """Extract the DSM Header info from data bloc passed as parameter
         
@@ -272,7 +278,13 @@ class OSNMA_receiver:
             if n_field != self.osnma.get_data(field):
                 self.osnma.load(field, n_field)
                 print_queue.append(field)
+            elif self.verbose_headers:
+                print_queue.append(field)
 
+        # Only print info if its a different DSM message
+        if self.is_different_DSM or self.verbose_headers:
+            for field in print_queue:
+                self.print_read(field)
 
         # Check if this subframe is the start of a DSM message
         self.is_start_DSM = self.osnma.get_meaning('BID') == 1
@@ -282,7 +294,7 @@ class OSNMA_receiver:
             self.last_DMS_block = False
             self.dsm_section_pos = 0
             self.dsm_inside_field = False
-            print('\nStart DSM Message\n')
+            print('\nStart DSM Message')
 
             # Check if its a DSM message already read
             current_dsm_id = self.osnma.get_data('DSM_ID')
@@ -294,17 +306,13 @@ class OSNMA_receiver:
                     self.current_dsm_ids['PKR'] = current_dsm_id
             else:
                 self.is_different_DSM = False
-                print('Same DSM message as before\n')
+                print('\tSame DSM message as before')
+            print('')
         elif self.syncronized:
             # Check if this is last subframe of a DSM message
             self.last_DMS_block = self.osnma.get_meaning('BID') >= self.osnma.get_meaning('NB')
         else:
             print('\033[31m\tWaiting for start of next DSM\033[m')
-        
-        # Only print info if its a different DSM message
-        if self.is_different_DSM:
-            for field in print_queue:
-                self.print_read(field)
 
     def process_dsm_kroot(self, osnma_hkroot):
         """Extract the DSM KRoot info. Each time called continues in the
@@ -333,7 +341,7 @@ class OSNMA_receiver:
                     if bit_count == self.hkroot_length:
                         next_page = True
 
-                    self.print_read(field)
+                    self.print_read(field, self.only_headers)
 
                 else:
                     # Start of new field that occupies more than this page
@@ -342,7 +350,7 @@ class OSNMA_receiver:
                     self.dsm_left_field_length = self.hkroot_length - bit_count
                     next_page = True
 
-                    self.print_reading(field, self.dsm_left_field_length)
+                    self.print_reading(field, self.dsm_left_field_length, self.only_headers)
             else:
                 if (self.osnma.get_size(field) - self.dsm_left_field_length) > self.hkroot_length:
                     # Middle of field and still not finished in this page
@@ -350,7 +358,7 @@ class OSNMA_receiver:
                     self.dsm_left_field_length += self.hkroot_length
                     next_page = True
 
-                    self.print_reading(field, self.dsm_left_field_length)
+                    self.print_reading(field, self.dsm_left_field_length, self.only_headers)
 
                 else:
                     # End assembling the field
@@ -364,14 +372,14 @@ class OSNMA_receiver:
                     if bit_count == self.hkroot_length:
                         next_page = True               
 
-                    self.print_read(field)
+                    self.print_read(field, self.only_headers)
 
             if next_page:
                 # All bits from current page read
                 break
 
     def process_dsm_pkr(self, osnma_pkr):
-        pass
+        self.process_dsm_kroot(osnma_pkr)
 
     def gobrbrbr(self, max_iter):
         """Starts the receiver simulation.
@@ -423,22 +431,22 @@ class OSNMA_receiver:
 
 
                 # Actions
+                if not self.only_headers:
+                    # KROOT verification
+                    if self.is_new_subframe and self.last_DMS_block and self.is_different_DSM:
+                        self.kroot_verification()
 
-                # KROOT verification
-                if self.is_new_subframe and self.last_DMS_block and self.is_different_DSM:
-                    self.kroot_verification()
+                    # Add subframes to the pending list if KROOT not verified
+                    if self.is_new_subframe and not self.verified_kroot:
+                        mack_waiting_subframes.append({'WN': self.subframe_WN.copy(), 
+                                                        'TOW': self.subframe_TOW.copy(),
+                                                        'MACK': self.mack_current_subframe.copy(),
+                                                        'NavData': self.nav_data_current_subframe.copy()})
 
-                # Add subframes to the pending list if KROOT not verified
-                if self.is_new_subframe and not self.verified_kroot:
-                    mack_waiting_subframes.append({'WN': self.subframe_WN.copy(), 
-                                                    'TOW': self.subframe_TOW.copy(),
-                                                    'MACK': self.mack_current_subframe.copy(),
-                                                    'NavData': self.nav_data_current_subframe.copy()})
-
-                # Verify TESLA key and MAC fields if KROOT verified
-                if self.is_new_subframe and self.verified_kroot:
-                    self.mack_subframe_handle(mack_waiting_subframes)
-                    mack_waiting_subframes = []
+                    # Verify TESLA key and MAC fields if KROOT verified
+                    if self.is_new_subframe and self.verified_kroot:
+                        self.mack_subframe_handle(mack_waiting_subframes)
+                        mack_waiting_subframes = []
                     
             if index >= max_iter:
                 # Arbitrary stop
