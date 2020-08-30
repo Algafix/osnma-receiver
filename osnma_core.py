@@ -444,7 +444,7 @@ class OSNMACore:
 
         return mack_result_dict
 
-    def pkr_authentication(self):
+    def pkr_verification(self):
         """Craft and authenticates the new public key message with the saved merkle root
         """
 
@@ -476,7 +476,7 @@ class OSNMACore:
         return node == self.__merkle_root
 
     def dms_pkr_process(self, dms_pkr):
-        """Fragment the dms_pkr message in its fields and autenticates the new pkr key calling to self.pkr_authentication
+        """Fragment the dms_pkr message in its fields and autenticates the new pkr key calling to self.pkr_verification
 
         :param dms_pkr Raw DMS-PRK message
         :type dms_pkr BitArray
@@ -490,7 +490,7 @@ class OSNMACore:
                 self.load(field,dms_pkr[bit_counter:bit_counter+self.get_size(field)])
                 bit_counter += self.get_size(field)
         
-        return self.pkr_authentication()
+        return self.pkr_verification()
 
 
 if __name__ == "__main__":
