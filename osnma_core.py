@@ -262,7 +262,7 @@ class OSNMACore:
         for index in reversed(range(key_index)):
             gst = self.__gst_subfragment(index)
             hash_object = hashlib.new(self.__HF)
-            hash_object.update((key + gst + alpha).bytes)
+            hash_object.update((key + gst + alpha).tobytes())
             prev_key = bs.BitArray(hash_object.digest())
             key = prev_key[:key_size]
 
