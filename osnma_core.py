@@ -121,13 +121,30 @@ class OSNMACore:
     def get_merkle_root(self):
         return self.__merkle_root
 
-    def load_merkle_root(self, merkle_root):
+    def set_merkle_root(self, merkle_root):
+        """Change the value of the Merkle Tree root node.
+
+        :param merkle_root The hash correspondant to the root node of the Merkle Tree
+        :type merkle_root BitArray
+        """
         self.__merkle_root = merkle_root
 
     def load_floating_key(self, index, gst_WN, gst_TOW, key):
+        """Loads a floating key of the chain to speed up chain authentication
+        """
         self.__key_table[index] = osnma_structures.KeyEntry(index, gst_WN, gst_TOW, key)
 
     def load(self, field_name, data):
+        """Load data to the OSNMa Field indicated. Also triggers secondary actions related to
+        certain fields that modify the size of other fields or the use of certain funcions.
+
+        :param field_name Name of the OSNMA Field
+        :type field_name String
+
+        :param data Data of the field
+        :type data BitArray; formated String for bin, oct or hex
+        """
+
         try:
             # Try to create a BitArray object with the data
             if not isinstance(data, bs.BitArray):
@@ -157,6 +174,11 @@ class OSNMACore:
             raise
     
     def load_batch(self, data_dict):
+        """Load a dictionary with OSNMA Fields to the object.
+
+        :param data_dict Dictionary with key = field_name and data the data for the field
+        :type dict
+        """
         if not isinstance(data_dict, dict):
             raise TypeError('Expecting a dict class, not '+str(type(data_dict)))
 
@@ -164,6 +186,16 @@ class OSNMACore:
             self.load(key, data_dict[key])
 
     def kroot_verification(self, pub_key, hash_name=None):
+        """Authenticates the saved KROOT with the current Public Key or the path for the one
+        passed as parameter.
+
+        :param pub_key Path to the pem file with the pub_key used for the authentication
+        :type pub_key String
+
+        :param hash_name OpenSSL hash name to override the loaded one
+        :type hash_name String
+        """
+
         # Create the kroot signature message
         message = bs.BitArray()
         for field in self.OSNMA_crypto['kroot_sm']:
@@ -194,13 +226,32 @@ class OSNMACore:
         finally:
             return verification_result
 
-    def tesla_key_verification(self, key, gst_wn, gst_tow, position, svid=None, alpha=None):
+    def tesla_key_verification(self, key, gst_wn, gst_tow, position, svid=None):
+        """Authenticates a TESLA key with the gst_wn and gst_tow from when it has been received.
+        It also needs the position of the key in the mack block. The rest of the necessary data must
+        be uploaded to the object before
 
-        if not alpha:
-            alpha = self.OSNMA_data['alpha'].get_data()
+        :param key TESLA key to be authenticated
+        :type key BitArray
+
+        :param gst_wn Galileo Satellite Time Week Number of the TESLA key
+        :type gst_wn BitArray
+
+        :param gst_wn Galileo Satellite Time Time of Week of the TESLA key
+        :type gst_wn BitArray
+
+        :param position Position of the TESLA key inside the MACK keys
+        :type position int
+
+        :param svid Override the current svid
+        :param svid int
+
+        """
+
         if not svid:
             svid = self.svid
 
+        alpha = self.OSNMA_data['alpha'].get_data()
         key_size = self.OSNMA_data['KS'].get_meaning()
         gst = gst_wn + gst_tow
         key_index = self.get_key_index(gst, position, svid)
@@ -343,10 +394,33 @@ class OSNMACore:
         return computed_tag0 == tag0, computed_tag0, tag0
 
     def mac_verification(self, mac_entry, nav_data, key, counter):
+        """Not implemented yed.
+        """
         pass
 
     def mack_verification(self, tesla_keys, mack_subframe, nav_data, gst_wn=None, gst_tow=None):
-        
+        """Authenticates a full MACK message with the correspondant keys. Allows the authentication of
+        past MACK messages with the parameters gst_wn and gst_tow. Note: Current version does not support
+        cross-authentication.
+
+        :param tesla_keys List with the tesla keys for the MACK message in the same order as macs.
+        :type list
+
+        :param mack_subframe Raw MACK message to be authenticated in BitArray format.
+        :type mack_subframe BitArray
+
+        :param nav_data Navigation data of current satellite. Sorted in a list of 15 entries (one for each page)
+        in BitArray format.
+        :type nav_data list
+
+        :param gst_wn Galileo Satellite Time Week Number to overwrite the current one only for this MACK.
+        :type gst_wn BitArray
+
+        :param gst_tow Galileo Satellite Time Time of Week to overwrite the current one only for this MACK.
+        :type gst_tow BitArray
+        """
+
+
         if gst_wn and gst_tow:
             back_gst_wn = self.get_data('GST_WN')
             back_gst_tow = self.get_data('GST_TOW')

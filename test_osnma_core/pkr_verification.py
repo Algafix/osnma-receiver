@@ -14,7 +14,7 @@ pkr_message = bs.BitArray(PKRVECTOR)
 merkle_root = bs.BitArray(MERKLEROOT)
 
 osnma = osnma_core.OSNMACore()
-osnma.load_merkle_root(merkle_root)
+osnma.set_merkle_root(merkle_root)
 
 # Disfragment the raw message
 
