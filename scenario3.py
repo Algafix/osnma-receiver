@@ -10,7 +10,7 @@ if __name__ == "__main__":
     NPKT = '0b0001'
     NPKID = '0b0000'
     #max_iter = 195
-    max_iter = 400
+    max_iter = 600
     gnss = 0
     svid = 1
 

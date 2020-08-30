@@ -31,7 +31,7 @@ cryptographic_structures = {
             'alpha', 'KROOT'],
     'mac0_am': ['PRN', 'GST_WN', 'GST_TOW', 'CTR', 'NMA_S', 'navdata', 'P3'],
     'mac_am': ['PRN', 'PRN_N', 'GST_WN', 'GST_TOW', 'CTR', 'NMA_S', 'navdata', 'P3'],
-    'pkr_m': ['NPKT', 'NPKTID', 'NPK'],
+    'pkr_m': ['NPKT', 'NPKID', 'NPK'],
     'key_m': ['nKEY','GST','alpha','P3']
 }
 
@@ -212,7 +212,6 @@ mac_lookup_table = [
         'sequence': [[['00S','FLX'], ['05S','03S'], ['00G','11S']],[['00S','FLX'], ['04S','00G'], ['05E','12S']]]
     }
 ]
-
 
 adkd_masks = [
     [

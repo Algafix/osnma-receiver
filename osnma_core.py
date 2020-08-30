@@ -19,6 +19,7 @@ class OSNMACore:
         self.pubk_lengths = osnma_structures.pubk_lengths
         self.svid = svid
         self.load('PRN',bs.BitArray(uint=svid, length=self.get_size('PRN')))
+        self.__merkle_root = None
         self.__NS = 36
         self.__HF = None
         self.__MF = None
@@ -90,6 +91,18 @@ class OSNMACore:
         else:
             raise TypeError('Format not accepted (None, uint, bytes)')
     
+    def get_size(self, field_name):
+        try:
+            return self.OSNMA_data[field_name].get_size()
+        except KeyError:
+            raise KeyError('Key '+str(field_name+' does not exist.'))
+
+    def set_size(self, field_name, size):
+        try:
+            self.OSNMA_data[field_name].set_size(size)
+        except KeyError:
+            raise KeyError('Key '+str(field_name+' does not exist.'))
+
     def get_key_table(self):
         return self.__key_table
 
@@ -104,6 +117,12 @@ class OSNMACore:
 
     def get_field(self, field_name):
         return self.OSNMA_data[field_name]
+
+    def get_merkle_root(self):
+        return self.__merkle_root
+
+    def load_merkle_root(self, merkle_root):
+        self.__merkle_root = merkle_root
 
     def load_floating_key(self, index, gst_WN, gst_TOW, key):
         self.__key_table[index] = osnma_structures.KeyEntry(index, gst_WN, gst_TOW, key)
@@ -130,19 +149,13 @@ class OSNMACore:
                 entry_tow = bs.BitArray(uint=entry_tow, length=20)
                 self.__key_table[0] = osnma_structures.KeyEntry(0, entry_wn, entry_tow, data)
             elif current_field.name == 'NPKT':
-                ds_alg = current_field.get_meaning()[0]
+                ds_alg = current_field.get_meaning()
                 ds_alg_info = osnma_structures.pubk_lengths[ds_alg]
                 self.OSNMA_data['DS'].size = ds_alg_info['signature']
                 self.OSNMA_data['NPK'].size = ds_alg_info['npk']
         except:
             raise
     
-    def get_size(self, field_name):
-        try:
-            return self.OSNMA_data[field_name].size
-        except KeyError:
-            raise KeyError('Key '+str(field_name+' does not exist.'))
-
     def load_batch(self, data_dict):
         if not isinstance(data_dict, dict):
             raise TypeError('Expecting a dict class, not '+str(type(data_dict)))
@@ -356,6 +369,54 @@ class OSNMACore:
             self.load_batch({'GST_WN': back_gst_wn, 'GST_TOW': back_gst_tow})
 
         return mack_result_dict
+
+    def pkr_authentication(self):
+        """Craft and authenticates the new public key message with the saved merkle root
+        """
+
+        if self.__merkle_root == None:
+            raise AttributeError("Missing Merkle root")
+        
+        # Create the pkr signature message
+        message = bs.BitArray()
+        for field in self.OSNMA_crypto['pkr_m']:
+            message.append(self.OSNMA_data[field].get_data())
+
+        # Isolate the 4 intermediate nodes
+        itn = self.OSNMA_data['ITN'].get_data()
+        itn_list = [itn[256*i:256*(i+1)] for i in range(4)]
+
+        # Obtain the id of the leaf node
+        mid = self.OSNMA_data['MID'].get_data_uint()
+
+        # Compute merkle root. If the position if even, the new node is appended. If the position
+        # is odd, it's prepended. Then the position is divided by 2 because its a log2 tree
+        node = hashlib.sha256(message.bytes).digest()
+        for itnode in itn_list:
+            if mid%2 == 0:
+                node = bs.BitArray(hashlib.sha256((node + itnode).bytes).digest())
+            else:
+                node = bs.BitArray(hashlib.sha256((itnode + node).bytes).digest())
+            mid = mid//2
+
+        return node == self.__merkle_root
+
+    def dms_pkr_process(self, dms_pkr):
+        """Fragment the dms_pkr message in its fields and autenticates the new pkr key calling to self.pkr_authentication
+
+        :param dms_pkr Raw DMS-PRK message
+        :type dms_pkr BitArray
+        """
+
+        bit_counter = 0
+        for field in self.OSNMA_sections['DMS_PKR']:
+            if field == 'P2':
+                self.load(field,dms_pkr[bit_counter:])
+            else:
+                self.load(field,dms_pkr[bit_counter:bit_counter+self.get_size(field)])
+                bit_counter += self.get_size(field)
+        
+        return self.pkr_authentication()
 
 
 if __name__ == "__main__":
