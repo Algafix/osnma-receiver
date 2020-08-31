@@ -1,9 +1,11 @@
-import bitstring as bs
+"""Module that implements the basic OSNMA actions
+"""
+
 import math
-import sys
 import hmac
-import ecdsa
 import hashlib
+import ecdsa
+import bitstring as bs
 import auxiliar_data.osnma_fields as osnma_fields
 import auxiliar_data.osnma_structures as osnma_structures
 import auxiliar_data.exceptions as osnma_exceptions
@@ -41,7 +43,7 @@ class OSNMACore:
         """
         try:
             if not isinstance(data, bs.BitArray):
-                    data = bs.BitArray(data)
+                data = bs.BitArray(data)
             return data
         except bs.CreationError:
             raise TypeError("Can't convert to BitArray: " + str(data))
@@ -225,14 +227,14 @@ class OSNMACore:
             self.pubk_path = pub_key
 
         try:
-            hash = self.__hash_table[hash_name]
+            hashfunc = self.__hash_table[hash_name]
         except KeyError:
             raise TypeError("Hash not supported: " + hash_name)
 
         # Load key and create sign object
         with open(self.pubk_path) as f:
             try:
-                vk = ecdsa.VerifyingKey.from_pem(f.read(), hashfunc=hash)
+                vk = ecdsa.VerifyingKey.from_pem(f.read(), hashfunc=hashfunc)
             except IOError as e:
                 print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
