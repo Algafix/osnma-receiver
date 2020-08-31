@@ -1,6 +1,8 @@
 
 
 class Field:
+    """Class that stores an OSNMA field: data, name, size, description and meaning.
+    """
     def __init__(self, size, name, description, meaning=None, data=None, repr=None):
         self.size = size
         self.name = name

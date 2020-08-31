@@ -6,9 +6,15 @@ import ecdsa
 import hashlib
 import auxiliar_data.osnma_fields as osnma_fields
 import auxiliar_data.osnma_structures as osnma_structures
+import auxiliar_data.exceptions as osnma_exceptions
 
 
 class OSNMACore:
+    """Class that handle all the atributes and methods related to the OSNMA protocol. It stores data fields, process
+    messages and perform verification of the different OSNMA structures. It also provides information about the internal
+    stucture of the OSNMA message and auxiliat data such as bitmasks and tables in case the receiver wants to implement
+    them by itself.
+    """
 
     __hash_table = {'SHA256': hashlib.sha256, 'SHA3_224': hashlib.sha3_224, 'SHA3_256': hashlib.sha256}
 
@@ -184,7 +190,6 @@ class OSNMACore:
             self.OSNMA_data['DS'].size = ds_alg_info['signature']
             self.OSNMA_data['NPK'].size = ds_alg_info['npk']
         
-    
     def load_batch(self, data_dict):
         """Load a dictionary with OSNMA Fields to the object.
 
@@ -291,7 +296,7 @@ class OSNMACore:
 
         return verified, key_index
 
-    def filter_navigation_data(self, nav_data, adkd):
+    def filter_nav_data_by_adkd(self, nav_data, adkd):
         """Filters nav_data depending on the adkd parameter. Return all the nav_data to
         verifiy concatenated.
 
@@ -380,7 +385,7 @@ class OSNMACore:
         :type key BitArray
         """
         
-        filtered_nav_data = self.filter_navigation_data(nav_data, 0)
+        filtered_nav_data = self.filter_nav_data_by_adkd(nav_data, 0)
 
         self.load('CTR', bs.BitArray(uint=1, length=self.get_size('CTR')))
         mac_size = self.get_meaning('MS')
@@ -433,7 +438,6 @@ class OSNMACore:
         :param gst_tow Galileo Satellite Time Time of Week to overwrite the current one only for this MACK.
         :type gst_tow BitArray
         """
-
 
         if gst_wn and gst_tow:
             back_gst_wn = self.get_data('GST_WN')
@@ -497,6 +501,10 @@ class OSNMACore:
 
         """
 
+        # Formats the data
+        dms_pkr = self.__convert_to_BitArray(dms_pkr)
+
+        # Disfragment the message
         bit_counter = 0
         for field in self.OSNMA_sections['DMS_PKR']:
             if field == 'P2':
@@ -525,11 +533,22 @@ class OSNMACore:
         :type ds_length int
         """
 
+        # Sets new data
         if nma_header != None:
             self.load('NMA_H', nma_header)
         if ds_length != None:
             self.set_size('DS', ds_length)
 
+        # Formats the data
+        dms_kroot = self.__convert_to_BitArray(dms_kroot)
+
+        # Checks needed parameters
+        if self.get_size('DS') == None:
+            raise osnma_exceptions.MissingFieldSize('Field DS missing size, set it manually or load the NPKT field.')
+        if self.get_data('NMA_H') == None:
+            raise osnma_exceptions.MissingFieldData('Field NMA_H has no data, unable perform verification.')
+
+        # Disfragments the message
         bit_counter = 0
         for field in self.OSNMA_sections['DMS_KROOT']:
             if field == 'P1':
@@ -537,7 +556,8 @@ class OSNMACore:
             else:
                 self.load(field,dms_kroot[bit_counter:bit_counter+self.get_size(field)])
                 bit_counter += self.get_size(field)
-            
+
+        # Verify the kroot
         return self.kroot_verification(pubk_path)
 
 

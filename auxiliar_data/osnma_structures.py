@@ -1,5 +1,9 @@
 
 class KeyEntry:
+    """Class that contains all the information related to a key in
+    the TESLA chain. These information being it's index, week number,
+    time of the week and the key itself.
+    """
     
     def __init__(self, index, wn, tow, key):
         self.index = index

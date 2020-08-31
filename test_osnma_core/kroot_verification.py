@@ -23,5 +23,4 @@ if verificada:
 else:
     print('\n\t\033[31m Bad Signature \033[m\n')
 
-exit(0)
 
