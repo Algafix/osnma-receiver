@@ -12,12 +12,13 @@ class OSNMACore:
 
     __hash_table = {'SHA256': hashlib.sha256, 'SHA3_224': hashlib.sha3_224, 'SHA3_256': hashlib.sha256}
 
-    def __init__(self, svid=1):
+    def __init__(self, svid=1, pubk_path=None):
         self.OSNMA_data = osnma_fields.OSNMA_fields
         self.OSNMA_sections = osnma_structures.section_structures
         self.OSNMA_crypto = osnma_structures.cryptographic_structures
         self.pubk_lengths = osnma_structures.pubk_lengths
         self.svid = svid
+        self.pubk_path = pubk_path
         self.load('PRN',bs.BitArray(uint=svid, length=self.get_size('PRN')))
         self.__merkle_root = None
         self.__NS = 36
@@ -25,6 +26,19 @@ class OSNMACore:
         self.__MF = None
         self.__key_table = {}
         self.__mac0_nav_data = None
+
+    def __convert_to_BitArray(self, data):
+        """Tries to convert the input data to a BitArray object and raises TypeError exception if can't.
+
+        :param data Data to be converted
+        :type data BitArray; Bytes; formated String for bin, hex or oct.
+        """
+        try:
+            if not isinstance(data, bs.BitArray):
+                    data = bs.BitArray(data)
+            return data
+        except bs.CreationError:
+            raise TypeError("Can't convert to BitArray: " + str(data))
 
     def __macs_per_mackblock(self, nmack=None, ks=None, ms=None):
         # Load parameters
@@ -145,33 +159,31 @@ class OSNMACore:
         :type data BitArray; formated String for bin, oct or hex
         """
 
-        try:
-            # Try to create a BitArray object with the data
-            if not isinstance(data, bs.BitArray):
-                data = bs.BitArray(data)
-            
-            current_field = self.OSNMA_data[field_name]
-            current_field.set_data(data)
+        
+        # Try to create a BitArray object with the data
+        data = self.__convert_to_BitArray(data)
+        
+        current_field = self.OSNMA_data[field_name]
+        current_field.set_data(data)
 
-            # Secondary actions related to certain fields
-            if current_field.name == 'KS':
-                self.OSNMA_data['KROOT'].size = current_field.get_meaning()
-            elif current_field.name == 'HF':
-                self.__HF = current_field.get_meaning()
-            elif current_field.name == 'MF':
-                self.__MF = current_field.get_meaning()
-            elif current_field.name == 'KROOT':
-                entry_wn = self.OSNMA_data['KROOT_WN'].get_data()
-                entry_tow = self.OSNMA_data['KROOT_TOWH'].get_data_uint()*3600 - 30
-                entry_tow = bs.BitArray(uint=entry_tow, length=20)
-                self.__key_table[0] = osnma_structures.KeyEntry(0, entry_wn, entry_tow, data)
-            elif current_field.name == 'NPKT':
-                ds_alg = current_field.get_meaning()
-                ds_alg_info = osnma_structures.pubk_lengths[ds_alg]
-                self.OSNMA_data['DS'].size = ds_alg_info['signature']
-                self.OSNMA_data['NPK'].size = ds_alg_info['npk']
-        except:
-            raise
+        # Secondary actions related to certain fields
+        if current_field.name == 'KS':
+            self.OSNMA_data['KROOT'].size = current_field.get_meaning()
+        elif current_field.name == 'HF':
+            self.__HF = current_field.get_meaning()
+        elif current_field.name == 'MF':
+            self.__MF = current_field.get_meaning()
+        elif current_field.name == 'KROOT':
+            entry_wn = self.OSNMA_data['KROOT_WN'].get_data()
+            entry_tow = self.OSNMA_data['KROOT_TOWH'].get_data_uint()*3600 - 30
+            entry_tow = bs.BitArray(uint=entry_tow, length=20)
+            self.__key_table[0] = osnma_structures.KeyEntry(0, entry_wn, entry_tow, data)
+        elif current_field.name == 'NPKT':
+            ds_alg = current_field.get_meaning()
+            ds_alg_info = osnma_structures.pubk_lengths[ds_alg]
+            self.OSNMA_data['DS'].size = ds_alg_info['signature']
+            self.OSNMA_data['NPK'].size = ds_alg_info['npk']
+        
     
     def load_batch(self, data_dict):
         """Load a dictionary with OSNMA Fields to the object.
@@ -185,7 +197,7 @@ class OSNMACore:
         for key in data_dict.keys():
             self.load(key, data_dict[key])
 
-    def kroot_verification(self, pub_key, hash_name=None):
+    def kroot_verification(self, pub_key=None, hash_name=None):
         """Authenticates the saved KROOT with the current Public Key or the path for the one
         passed as parameter.
 
@@ -204,14 +216,16 @@ class OSNMACore:
         # Load the correspondand hash function
         if hash_name == None:
             hash_name = self.__HF
-        
+        if pub_key != None:
+            self.pubk_path = pub_key
+
         try:
             hash = self.__hash_table[hash_name]
         except KeyError:
             raise TypeError("Hash not supported: " + hash_name)
 
         # Load key and create sign object
-        with open(pub_key) as f:
+        with open(self.pubk_path) as f:
             try:
                 vk = ecdsa.VerifyingKey.from_pem(f.read(), hashfunc=hash)
             except IOError as e:
@@ -389,7 +403,7 @@ class OSNMACore:
         elif self.__MF == 'CMAC-AES':
             raise TypeError('CMAC-AES not implemented')
         else:
-            raise TypeError('MAC function rsvd')
+            raise TypeError('MAC function rsvd or None ' + str(self.__HF))
         
         return computed_tag0 == tag0, computed_tag0, tag0
 
@@ -479,7 +493,8 @@ class OSNMACore:
         """Fragment the dms_pkr message in its fields and autenticates the new pkr key calling to self.pkr_verification
 
         :param dms_pkr Raw DMS-PRK message
-        :type dms_pkr BitArray
+        :type dms_pkr BitArray; formated String for bin, oct or hex
+
         """
 
         bit_counter = 0
@@ -491,6 +506,39 @@ class OSNMACore:
                 bit_counter += self.get_size(field)
         
         return self.pkr_verification()
+
+    def dms_kroot_process(self, dms_kroot, pubk_path=None, nma_header=None, ds_length=None):
+        """Process the message from the OSNMA DMS-KROOT. Reads and disfragment the fields from the
+        dms_kroot message and then proceeds with the KROOT verification calling self.kroot_verification().
+        Allows to load custom NMA Header, DS length and pubk path in case they are not already saved in the object.
+
+        :param dms_kroot Bits from the DMS-KROOT OSNMA message.
+        :type dms_kroot BitArray; formated String for bin, oct or hex
+
+        :param pubk_path Path to the public key that will be used
+        :type pubk_path String
+
+        :param nma_header NMA Header to be used in the verification
+        :type nma_header BitArray; formated String for bin, oct or hex
+
+        :param ds_length Length of the DS field in DMS-KROOT message
+        :type ds_length int
+        """
+
+        if nma_header != None:
+            self.load('NMA_H', nma_header)
+        if ds_length != None:
+            self.set_size('DS', ds_length)
+
+        bit_counter = 0
+        for field in self.OSNMA_sections['DMS_KROOT']:
+            if field == 'P1':
+                self.load(field,dms_kroot[bit_counter:])
+            else:
+                self.load(field,dms_kroot[bit_counter:bit_counter+self.get_size(field)])
+                bit_counter += self.get_size(field)
+            
+        return self.kroot_verification(pubk_path)
 
 
 if __name__ == "__main__":

@@ -12,23 +12,16 @@ osnma = osnma_core.OSNMACore()
 # Instanciate local structures
 
 pubk = 'auxiliar_data/PubK.pem'
-
 kroot_raw = bs.BitArray(KROOTVECTOR['decoded'])
+ds_size = KROOTVECTOR['DS_len']
+nma_h = bs.BitArray(KROOTVECTOR['NMA_H'])
 
-osnma.OSNMA_data['DS'].size = KROOTVECTOR['DS_len']
-osnma.OSNMA_data['NMA_H'].data = bs.BitArray(KROOTVECTOR['NMA_H'])
+verificada = osnma.dms_kroot_process(kroot_raw, pubk, nma_h, ds_size)
 
-# Disfragment the raw message
-
-bit_counter = 0
-for field in osnma.OSNMA_sections['DMS_KROOT']:
-    if field == 'P1':
-        osnma.load(field,kroot_raw[bit_counter:])
-    else:
-        osnma.load(field,kroot_raw[bit_counter:bit_counter+osnma.get_size(field)])
-        bit_counter += osnma.get_size(field)
-
-if osnma.kroot_verification(pubk):
+if verificada:
     print('\n\t\033[1m\033[30m\033[42m Signature verified!\033[m\n')
 else:
     print('\n\t\033[31m Bad Signature \033[m\n')
+
+exit(0)
+
