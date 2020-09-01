@@ -381,7 +381,7 @@ class OSNMA_receiver:
     def process_dsm_pkr(self, osnma_pkr):
         self.process_dsm_kroot(osnma_pkr)
 
-    def gobrbrbr(self, max_iter):
+    def start(self, max_iter):
         """Starts the receiver simulation.
         """
 

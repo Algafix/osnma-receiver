@@ -227,14 +227,14 @@ class OSNMACore:
             self.pubk_path = pub_key
 
         try:
-            hashfunc = self.__hash_table[hash_name]
+            hash_func = self.__hash_table[hash_name]
         except KeyError:
             raise TypeError("Hash not supported: " + hash_name)
 
         # Load key and create sign object
         with open(self.pubk_path) as f:
             try:
-                vk = ecdsa.VerifyingKey.from_pem(f.read(), hashfunc=hashfunc)
+                vk = ecdsa.VerifyingKey.from_pem(f.read(), hashfunc=hash_func)
             except IOError as e:
                 print("I/O error({0}): {1}".format(e.errno, e.strerror))
 
