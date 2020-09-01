@@ -34,7 +34,7 @@ Installation
 Clone or download this GitHub and install dependencies with:
 
   cd <git folder>
-  pip install requeriments.txt
+  pip install -r requirements.txt
   
   python3 run scenario1.py
 

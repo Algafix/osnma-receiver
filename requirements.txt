@@ -1,0 +1,11 @@
+bitstring==3.1.7
+ecdsa==0.15
+isort==4.3.21
+lazy-object-proxy==1.4.3
+numpy==1.19.1
+pandas==1.1.0
+python-dateutil==2.8.1
+pytz==2020.1
+six==1.15.0
+toml==0.10.1
+wrapt==1.12.1
