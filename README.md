@@ -2,6 +2,9 @@
 osnma-receiver
 ========
 
+Working in an official implementation and complete refactor of the receiver that will be published July. Until then, don't expect any update.
+========
+
 osnma-receiver contains a OSNMA_receiver class that implements a Galileo OSNMA receiver that works with nominal data.
 
 The file scenario1.py can be executed out of the box and will start to read real satellite data and print to console the OSNMA operations done by the receiver.
