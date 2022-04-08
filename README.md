@@ -2,7 +2,7 @@
 osnma-receiver
 ========
 
-Working on an official implementation and complete refactor of the receiver that will be published in July. Until then, don't expect any update.
+Discontinued. Official updated version on: https://github.com/Algafix/OSNMA
 ========
 
 osnma-receiver contains a OSNMA_receiver class that implements a Galileo OSNMA receiver that works with nominal data.
